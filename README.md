@@ -48,28 +48,23 @@ cd Openclaw_Agent_Payment_demo
 
 ### 2. 安装依赖
 
-#### 安装Foundry (用于编译部署合约)
-
-**Linux/macOS:**
-```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
-
-**Windows:**
-```powershell
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
-
-或者参考官方文档: https://book.getfoundry.sh/getting-started/installation
-
-#### 安装Node.js依赖
+#### 安装Node.js依赖（必需）
 
 ```bash
 cd shopping-demo
 npm install
 ```
+
+#### 安装Foundry（可选，仅用于编译/部署合约）
+
+如果你需要自己编译或部署合约：
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+或参考官方文档: https://book.getfoundry.sh/getting-started/installation
 
 ### 3. 配置环境变量
 
