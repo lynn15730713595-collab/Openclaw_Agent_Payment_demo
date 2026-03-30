@@ -71,7 +71,11 @@ function formatCartCard(cart, productPort) {
     output += '╠' + line + '╠\n';
     
     for (const item of cart.items) {
-        output += '║' + `   • ${item.name.padEnd(28)} ${item.priceEth.padStart(10)}`.padEnd(width) + '║\n';
+        output += '║' + `   • ${item.name}`.padEnd(width) + '║\n';
+        if (item.name_zh) {
+            output += '║' + `     (${item.name_zh})`.padEnd(width) + '║\n';
+        }
+        output += '║' + `     价格: ${item.priceEth}`.padEnd(width) + '║\n';
     }
     
     output += '╠' + line + '╠\n';
@@ -131,18 +135,20 @@ async function main() {
             const data = await response.json();
             
             console.log('\n');
-            console.log('╔════════════════════════════════════════════════════════════╗');
-            console.log('║                    📦 商品目录                              ║');
-            console.log('╠════════════════════════════════════════════════════════════╣');
+            console.log('╔══════════════════════════════════════════════════════════════════════╗');
+            console.log('║                         📦 商品目录                                   ║');
+            console.log('╠══════════════════════════════════════════════════════════════════════╣');
             
             for (const product of data.products) {
-                console.log(`║  商品 #${product.id}: ${product.name.padEnd(24)}      ║`);
-                console.log(`║    价格: ${product.priceEth.padEnd(12)}  端口: ${product.port}          ║`);
-                console.log(`║    URL: http://localhost:${product.port}/                   ║`);
-                console.log('╠────────────────────────────────────────────────────────────╣');
+                const name = product.name_zh ? `${product.name} (${product.name_zh})` : product.name;
+                console.log(`║  商品ID: ${product.id.padEnd(20)} 端口: ${product.port}        ║`);
+                console.log(`║  名称: ${name.padEnd(52)}║`);
+                console.log(`║  价格: ${product.priceEth.padEnd(12)} 分类: ${product.category.padEnd(20)}║`);
+                console.log(`║  描述: ${product.description.substring(0, 50).padEnd(51)}║`);
+                console.log('╠──────────────────────────────────────────────────────────────────────╣');
             }
             
-            console.log('╚════════════════════════════════════════════════════════════╝');
+            console.log('╚══════════════════════════════════════════════════════════════════════╝');
         } catch (error) {
             console.error('❌ 获取商品失败:', error.message);
         }
@@ -150,7 +156,17 @@ async function main() {
 
     // 购买商品
     async function purchaseProduct() {
-        const portInput = await question('请输入商品端口 (如 3001): ');
+        console.log('\n商品端口列表:');
+        console.log('  3001 - AI API Package (AI API调用包) - 0.0005 ETH');
+        console.log('  3002 - Data Cleaning Service (数据清洗服务) - 0.001 ETH');
+        console.log('  3003 - Model Training Time (模型训练时间) - 0.0015 ETH');
+        console.log('  3004 - Business Analysis Report (商业分析报告) - 0.002 ETH');
+        console.log('  3005 - System Monitoring Service (系统监控服务) - 0.0025 ETH');
+        console.log('  3006 - Expert Technical Consulting (专家技术咨询) - 0.003 ETH');
+        console.log('  3007 - API Documentation Generation (API文档生成) - 0.0035 ETH');
+        console.log('  3008 - Data Backup Service (数据备份服务) - 0.004 ETH');
+        
+        const portInput = await question('\n请输入商品端口 (如 3001): ');
         const port = parseInt(portInput);
         
         if (isNaN(port) || port < 3001 || port > 3008) {
@@ -164,10 +180,16 @@ async function main() {
             const productData = await infoResponse.json();
             
             console.log('\n商品信息:');
+            console.log(`  ID: ${productData.product.id}`);
             console.log(`  名称: ${productData.product.name}`);
+            if (productData.product.name_zh) {
+                console.log(`  中文名: ${productData.product.name_zh}`);
+            }
+            console.log(`  描述: ${productData.product.description}`);
             console.log(`  价格: ${productData.product.priceEth}`);
+            console.log(`  分类: ${productData.product.category}`);
             
-            const confirm = await question('确认购买? (y/n): ');
+            const confirm = await question('\n确认购买? (y/n): ');
             if (confirm.toLowerCase() !== 'y') {
                 console.log('已取消');
                 return;
