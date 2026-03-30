@@ -24,10 +24,8 @@ Openclaw_Agent_Payment_demo/
 │
 ├── shopping-demo/                  # 交互演示
 │   ├── .env.example               # 配置模板
-│   ├── modular-cli.js             # 单端口购物演示
-│   ├── product-api-server.js      # 单端口商品API服务
-│   ├── multi-shopping-cli.js      # 多端口购物演示 ⭐
-│   ├── multi-product-api-server.js # 多端口商品API服务 ⭐
+│   ├── multi-shopping-cli.js      # 交互脚本
+│   ├── multi-product-api-server.js # 商品API服务 (多端口)
 │   ├── package.json               # Node.js依赖
 │   └── start.sh                   # 启动脚本
 │
@@ -134,43 +132,29 @@ forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private
 
 ### 5. 运行Demo
 
-#### 终端1: 启动API服务
-
 ```bash
 cd shopping-demo
-node product-api-server.js
-```
 
-#### 终端2: 运行交互脚本
+# 终端1: 启动API服务 (启动9个服务: 3000-3008)
+node multi-product-api-server.js
 
-```bash
-cd shopping-demo
-node modular-cli.js
+# 终端2: 运行交互脚本
+node multi-shopping-cli.js
 ```
 
 ## 🎮 Demo操作流程
 
-### 模式选择
+## 🎮 Demo操作流程
 
-本Demo提供两种运行模式：
+### 启动服务
 
-| 模式 | API服务 | 交互脚本 | 端口 |
-|------|---------|----------|------|
-| **单端口模式** | `product-api-server.js` | `modular-cli.js` | 3000 |
-| **多端口模式** ⭐ | `multi-product-api-server.js` | `multi-shopping-cli.js` | 3000-3008 |
+```bash
+# 终端1: 启动多端口API服务
+node multi-product-api-server.js
 
----
-
-### 单端口模式
-
+# 终端2: 运行交互脚本
+node multi-shopping-cli.js
 ```
-终端1: node product-api-server.js    # 端口3000
-终端2: node modular-cli.js
-```
-
----
-
-### 多端口模式 ⭐ 推荐
 
 **启动服务:**
 
