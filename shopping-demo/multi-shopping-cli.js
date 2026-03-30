@@ -359,13 +359,18 @@ async function main() {
         const merchantBalance = await provider.getBalance(CONFIG.merchantAddress);
 
         console.log('\n');
-        console.log('╔════════════════════════════════════════════════════════════╗');
-        console.log('║                    💰 账户余额                              ║');
-        console.log('╠════════════════════════════════════════════════════════════╣');
-        console.log(`║  用户钱包:   ${ethers.formatEther(userBalance).padEnd(10)} ETH`.padEnd(61) + '║');
-        console.log(`║  智能账户:   ${ethers.formatEther(accountBalance).padEnd(10)} ETH`.padEnd(61) + '║');
-        console.log(`║  商户收款:   ${ethers.formatEther(merchantBalance).padEnd(10)} ETH`.padEnd(61) + '║');
-        console.log('╚════════════════════════════════════════════════════════════╝');
+        console.log('╔══════════════════════════════════════════════════════════════════════╗');
+        console.log('║                         💰 账户余额                                   ║');
+        console.log('╠══════════════════════════════════════════════════════════════════════╣');
+        console.log(`║  用户钱包:   ${ethers.formatEther(userBalance).padEnd(12)} ETH                      ║`);
+        console.log(`║  地址:       ${wallet.address}                            ║`);
+        console.log('╠──────────────────────────────────────────────────────────────────────╣');
+        console.log(`║  智能账户:   ${ethers.formatEther(accountBalance).padEnd(12)} ETH                      ║`);
+        console.log(`║  地址:       ${CONFIG.accountAddress}                            ║`);
+        console.log('╠──────────────────────────────────────────────────────────────────────╣');
+        console.log(`║  商户收款:   ${ethers.formatEther(merchantBalance).padEnd(12)} ETH                      ║');
+        console.log(`║  地址:       ${CONFIG.merchantAddress}                            ║`);
+        console.log('╚══════════════════════════════════════════════════════════════════════╝');
     }
 
     // 主循环
