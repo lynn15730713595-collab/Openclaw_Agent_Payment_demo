@@ -1,6 +1,6 @@
 # AI Agent Payment Demo
 
-基于会话密钥的AI代理支付演示项目。
+基于会话密钥(Session Key)的AI代理支付演示项目。
 
 ## 📖 项目简介
 
@@ -32,6 +32,146 @@ Openclaw_Agent_Payment_demo/
 └── README.md                       # 本文件
 ```
 
+## 🚀 快速开始
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/lynn15730713595-collab/Openclaw_Agent_Payment_demo.git
+cd Openclaw_Agent_Payment_demo
+```
+
+### 2. 安装依赖
+
+#### 安装Foundry (用于编译部署合约)
+
+**Linux/macOS:**
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+**Windows:**
+```powershell
+# 使用 PowerShell
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+或者参考官方文档: https://book.getfoundry.sh/getting-started/installation
+
+#### 安装Node.js依赖
+
+```bash
+cd shopping-demo
+npm install
+```
+
+### 3. 配置环境变量
+
+#### Linux/macOS:
+```bash
+cp shopping-demo/.env.example shopping-demo/.env
+nano shopping-demo/.env  # 或使用你喜欢的编辑器
+```
+
+#### Windows PowerShell:
+```powershell
+cp shopping-demo/.env.example shopping-demo/.env
+notepad shopping-demo/.env
+```
+
+#### 配置内容说明:
+
+```bash
+# 网络配置
+RPC_URL=https://ethereum-sepolia.publicnode.com
+CHAIN_ID=11155111
+
+# 用户私钥 (⚠️ 请替换为你自己的私钥，不要使用真实资产!)
+PRIVATE_KEY=0x你的私钥
+
+# 模块化账户地址 (部署后填入)
+ACCOUNT_ADDRESS=0x部署的合约地址
+
+# 商户收款地址 (可以是任意地址，用于接收支付)
+MERCHANT_ADDRESS=0x商户收款地址
+
+# 商品API服务
+API_BASE_URL=http://localhost:3000
+PORT=3000
+```
+
+⚠️ **安全提醒:**
+- 不要在 `.env` 文件中存储有真实资产的私钥
+- 建议使用测试网专用钱包
+- `.env` 文件已添加到 `.gitignore`，不会被上传到GitHub
+
+### 4. 部署合约 (可选)
+
+如果你想自己部署合约:
+
+```bash
+cd contracts
+
+# 安装依赖
+forge install
+
+# 编译
+forge build
+
+# 部署到Sepolia测试网
+forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY
+
+# 记录输出的合约地址，更新到 shopping-demo/.env 中的 ACCOUNT_ADDRESS
+```
+
+**获取Sepolia测试ETH:**
+- https://sepoliafaucet.com/
+- https://www.alchemy.com/faucets/ethereum-sepolia
+
+### 5. 运行Demo
+
+#### 终端1: 启动API服务
+
+```bash
+cd shopping-demo
+node product-api-server.js
+```
+
+#### 终端2: 运行交互脚本
+
+```bash
+cd shopping-demo
+node modular-cli.js
+```
+
+## 🎮 Demo操作流程
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    交互脚本菜单                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  1. 📦 查看商品目录                                              │
+│  2. 🛒 购买商品 (完整流程)                                       │
+│  3. 💰 查询实时余额                                              │
+│  4. 📊 查看会话密钥状态                                          │
+│  5. 🔑 授权会话密钥                                              │
+│  6. ❌ 撤销会话密钥                                              │
+│  h. ❓ 帮助                                                      │
+│  q. 🚪 退出                                                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 完整购物流程:
+
+1. 选择 `2` → 购买商品
+2. 输入商品名称（如 `premium widget`）
+3. 确认购物车
+4. 自动生成会话密钥并授权
+5. 会话密钥签名支付消息
+6. 交易上链，商户收款
+
 ## 🔧 核心合约
 
 ### ModularAccount.sol
@@ -59,54 +199,6 @@ struct SessionKey {
 | `revokeSessionKey()` | 撤销会话密钥 |
 | `payWithSessionKey()` | 用会话密钥支付 |
 | `withdraw()` | 提取ETH |
-
-## 🚀 快速开始
-
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/lynn15730713595-collab/Openclaw_Agent_Payment_demo.git
-cd Openclaw_Agent_Payment_demo
-```
-
-### 2. 安装依赖
-
-```bash
-# 安装Foundry (如果未安装)
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-
-# 安装Node.js依赖
-cd shopping-demo
-npm install
-```
-
-### 3. 配置环境
-
-```bash
-cp .env.example .env
-# 编辑.env文件，填入你的私钥和地址
-```
-
-### 4. 部署合约
-
-```bash
-cd ../contracts
-forge install
-forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY
-```
-
-### 5. 运行Demo
-
-```bash
-cd ../shopping-demo
-
-# 终端1: 启动API服务
-node product-api-server.js
-
-# 终端2: 运行交互脚本
-node modular-cli.js
-```
 
 ## 📊 支付流程
 
@@ -152,6 +244,40 @@ node modular-cli.js
 | 防重放 | 每笔支付只能执行一次 |
 | 可撤销 | 用户可随时撤销会话密钥 |
 
+## 🛠️ 常见问题
+
+### Q: 如何获取测试ETH?
+
+访问Sepolia测试网水龙头:
+- https://sepoliafaucet.com/
+- https://www.alchemy.com/faucets/ethereum-sepolia
+
+### Q: 合约部署失败?
+
+确保:
+1. 钱包有足够的Sepolia ETH
+2. RPC_URL正确且可访问
+3. 私钥格式正确 (以 `0x` 开头)
+
+### Q: 支付交易失败?
+
+检查:
+1. 智能账户有足够余额
+2. 会话密钥已授权
+3. 会话密钥未过期、未超次数/额度
+4. 签名验证通过
+
+### Q: Windows上如何编辑.env?
+
+```powershell
+notepad shopping-demo/.env
+```
+
 ## 📝 License
 
 MIT
+
+## 🙏 致谢
+
+- [Foundry](https://getfoundry.sh/) - 智能合约开发框架
+- [ethers.js](https://docs.ethers.org/) - 以太坊JavaScript库
