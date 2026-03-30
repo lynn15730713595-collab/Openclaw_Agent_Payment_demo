@@ -480,14 +480,37 @@ async function main() {
                 }
                 maxCalls = (maxCalls >= 1 && maxCalls <= 100) ? maxCalls : 5;
             }
-            const finalMaxCalls = (maxCalls >= 1 && maxCalls <= 100) ? maxCalls : 5;
 
             // 授权会话密钥 (只有新创建的才需要授权)
             if (isNewKey) {
+                // 让用户输入最大额度
+                const defaultMaxSpending = BigInt(purchaseData.payment.amount) * 12n / 10n;
+                console.log(`\n💡 当前支付金额: ${ethers.formatEther(purchaseData.payment.amount)} ETH`);
+                console.log(`   建议额度: ${ethers.formatEther(defaultMaxSpending)} ETH (当前金额的1.2倍)`);
+                
+                const maxSpendingInput = await question('请输入最大额度 ETH (直接回车使用建议值): ');
+                let maxSpending;
+                
+                if (maxSpendingInput.trim() === '') {
+                    maxSpending = defaultMaxSpending;
+                } else {
+                    const inputEth = parseFloat(maxSpendingInput);
+                    if (isNaN(inputEth) || inputEth <= 0) {
+                        console.log('⚠️  无效的额度，使用建议值');
+                        maxSpending = defaultMaxSpending;
+                    } else {
+                        maxSpending = ethers.parseEther(inputEth.toString());
+                        // 检查是否足够支付当前金额
+                        if (maxSpending < BigInt(purchaseData.payment.amount)) {
+                            console.log('⚠️  额度小于当前支付金额，将使用当前金额的1.2倍');
+                            maxSpending = defaultMaxSpending;
+                        }
+                    }
+                }
+                
                 console.log('\n📝 授权会话密钥到智能账户...');
                 console.log('─'.repeat(50));
                 const expiresAt = Math.floor(Date.now() / 1000) + 3600;
-                const maxSpending = BigInt(purchaseData.payment.amount) * 12n / 10n;
                 
                 console.log(`   有效期: 1小时`);
                 console.log(`   最大调用次数: ${maxCalls}`);
