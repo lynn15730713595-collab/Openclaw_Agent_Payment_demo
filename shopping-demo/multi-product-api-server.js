@@ -9,56 +9,56 @@ const crypto = require('crypto');
 // 商品配置 (来自 ai-agent-payment-demo 项目)
 const PRODUCTS = [
     { 
-        id: 1, 
+        id: 'ai-api-1000', 
         name: 'AI API Package', 
         description: '1000次 GPT-4 API calls',
         price: '500000000000000',  // 0.0005 ETH
         port: 3001
     },
     { 
-        id: 2, 
+        id: 'data-cleaning-10gb', 
         name: 'Data Cleaning Service', 
         description: 'Professional data cleaning for 10GB',
         price: '1000000000000000',  // 0.001 ETH
         port: 3002
     },
     { 
-        id: 3, 
+        id: 'gpu-training-24h', 
         name: 'Model Training Time', 
         description: '24 hours GPU training time',
         price: '1500000000000000',  // 0.0015 ETH
         port: 3003
     },
     { 
-        id: 4, 
+        id: 'analysis-report', 
         name: 'Business Analysis Report', 
         description: 'Professional business analysis',
         price: '2000000000000000',  // 0.002 ETH
         port: 3004
     },
     { 
-        id: 5, 
+        id: 'monitoring-7d', 
         name: 'System Monitoring Service', 
         description: '7 days 24/7 monitoring',
         price: '2500000000000000',  // 0.0025 ETH
         port: 3005
     },
     { 
-        id: 6, 
+        id: 'consulting-1h', 
         name: 'Expert Technical Consulting', 
         description: '1 hour expert consulting',
         price: '3000000000000000',  // 0.003 ETH
         port: 3006
     },
     { 
-        id: 7, 
-        name: 'API Documentation', 
+        id: 'api-documentation', 
+        name: 'API Documentation Generation', 
         description: 'Auto API documentation generation',
         price: '3500000000000000',  // 0.0035 ETH
         port: 3007
     },
     { 
-        id: 8, 
+        id: 'data-backup-1tb', 
         name: 'Data Backup Service', 
         description: '1TB enterprise backup service',
         price: '4000000000000000',  // 0.004 ETH
@@ -196,7 +196,7 @@ function createMainRouter() {
 
     // 根据商品ID获取端口信息
     app.get('/api/products/:id', (req, res) => {
-        const product = PRODUCTS.find(p => p.id === parseInt(req.params.id));
+        const product = PRODUCTS.find(p => p.id === req.params.id);
         
         if (!product) {
             return res.status(404).json({
