@@ -152,14 +152,14 @@ async function main() {
     // 购买商品
     async function purchaseProduct() {
         console.log('\n商品端口列表:');
-        console.log('  3001 - AI API Package (ai-api-1000) - 0.0005 ETH');
-        console.log('  3002 - Data Cleaning Service (data-cleaning-10gb) - 0.001 ETH');
-        console.log('  3003 - Model Training Time (gpu-training-24h) - 0.0015 ETH');
-        console.log('  3004 - Business Analysis Report (analysis-report) - 0.002 ETH');
-        console.log('  3005 - System Monitoring Service (monitoring-7d) - 0.0025 ETH');
-        console.log('  3006 - Expert Technical Consulting (consulting-1h) - 0.003 ETH');
-        console.log('  3007 - API Documentation Generation (api-documentation) - 0.0035 ETH');
-        console.log('  3008 - Data Backup Service (data-backup-1tb) - 0.004 ETH');
+        console.log('  3001 - AI API Package - 0.0005 ETH');
+        console.log('  3002 - Data Cleaning Service - 0.001 ETH');
+        console.log('  3003 - Model Training Time - 0.0015 ETH');
+        console.log('  3004 - Business Analysis Report - 0.002 ETH');
+        console.log('  3005 - System Monitoring Service - 0.0025 ETH');
+        console.log('  3006 - Expert Technical Consulting - 0.003 ETH');
+        console.log('  3007 - API Documentation Generation - 0.0035 ETH');
+        console.log('  3008 - Data Backup Service - 0.004 ETH');
         
         const portInput = await question('\n请输入商品端口 (如 3001): ');
         const port = parseInt(portInput);
