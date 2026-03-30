@@ -113,17 +113,25 @@ MERCHANT_ADDRESS=0x商户收款地址
 
 #### 步骤1：配置环境变量
 
-部署合约需要读取 `PRIVATE_KEY` 和 `RPC_URL` 环境变量。
+部署合约需要 `PRIVATE_KEY` 环境变量。
 
-**方式一：复制 .env 到 contracts 目录（推荐）**
+**方式一：创建 contracts 专用 .env（推荐）**
 
 ```bash
-cp shopping-demo/.env contracts/.env
+cp contracts/.env.example contracts/.env
+nano contracts/.env  # 填入你的私钥
 ```
 
-**方式二：加载环境变量后部署**
+contracts 目录的 `.env` 只需要 `PRIVATE_KEY`：
 
 ```bash
+PRIVATE_KEY=0x你的私钥
+```
+
+**方式二：使用 shopping-demo 的 .env**
+
+```bash
+# shopping-demo/.env 包含更多字段，但部署脚本只读取 PRIVATE_KEY
 source shopping-demo/.env
 ```
 
