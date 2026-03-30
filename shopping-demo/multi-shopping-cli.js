@@ -207,6 +207,7 @@ async function main() {
         console.log('║  1. 📦 查看商品目录                                         ║');
         console.log('║  2. 🛒 购买商品                                             ║');
         console.log('║  3. 💰 查询余额                                             ║');
+        console.log('║  4. 🔑 查询会话密钥                                         ║');
         console.log('║  q. 🚪 退出                                                 ║');
         console.log('╚════════════════════════════════════════════════════════════╝');
     }
@@ -283,20 +284,28 @@ async function main() {
             console.log('   ⚠️  这是临时密钥，仅用于本次交易');
             console.log('─'.repeat(50));
 
+            // 让用户输入最大调用次数
+            const maxCallsInput = await question('\n请输入最大调用次数 (默认5): ');
+            const maxCalls = parseInt(maxCallsInput) || 5;
+            
+            if (maxCalls < 1 || maxCalls > 100) {
+                console.log('⚠️  调用次数超出范围，使用默认值 5');
+            }
+            const finalMaxCalls = (maxCalls >= 1 && maxCalls <= 100) ? maxCalls : 5;
+
             // 授权会话密钥
             console.log('\n📝 授权会话密钥到智能账户...');
             console.log('─'.repeat(50));
             const expiresAt = Math.floor(Date.now() / 1000) + 3600;
-            const maxCalls = 5;
             const maxSpending = BigInt(purchaseData.payment.amount) * 12n / 10n;
             
             console.log(`   有效期: 1小时`);
-            console.log(`   最大调用次数: ${maxCalls}`);
+            console.log(`   最大调用次数: ${finalMaxCalls}`);
             console.log(`   最大额度: ${ethers.formatEther(maxSpending)} ETH`);
             console.log('─'.repeat(50));
 
             const grantTx = await account.grantSessionKey(
-                sessionKey.address, expiresAt, maxCalls, maxSpending, ethers.ZeroAddress
+                sessionKey.address, expiresAt, finalMaxCalls, maxSpending, ethers.ZeroAddress
             );
             console.log(`\n⏳ 授权交易: ${grantTx.hash}`);
             await grantTx.wait();
@@ -373,6 +382,66 @@ async function main() {
         console.log('╚══════════════════════════════════════════════════════════════════════╝');
     }
 
+    // 查询会话密钥
+    async function querySessionKey() {
+        const addressInput = await question('\n请输入会话密钥地址: ');
+        const sessionKeyAddress = addressInput.trim();
+        
+        if (!ethers.isAddress(sessionKeyAddress)) {
+            console.log('❌ 无效的地址格式');
+            return;
+        }
+
+        try {
+            const keyInfo = await account.getSessionKey(sessionKeyAddress);
+            
+            const isActive = keyInfo.isActive;
+            const expiresAt = Number(keyInfo.expiresAt);
+            const maxCalls = Number(keyInfo.maxCalls);
+            const usedCalls = Number(keyInfo.usedCalls);
+            const maxSpending = keyInfo.maxSpending;
+            const usedSpending = keyInfo.usedSpending;
+            const allowedTarget = keyInfo.allowedTarget;
+
+            const now = Math.floor(Date.now() / 1000);
+            const isExpired = now > expiresAt;
+            const callsRemaining = maxCalls - usedCalls;
+            const spendingRemaining = maxSpending - usedSpending;
+
+            console.log('\n');
+            console.log('╔══════════════════════════════════════════════════════════════════════╗');
+            console.log('║                      🔑 会话密钥状态                                  ║');
+            console.log('╠══════════════════════════════════════════════════════════════════════╣');
+            console.log(`║  地址:       ${sessionKeyAddress}                            ║`);
+            console.log('╠──────────────────────────────────────────────────────────────────────╣');
+            console.log(`║  状态:       ${isActive ? '✅ 已激活' : '❌ 未激活'}                                         ║`);
+            console.log(`║  过期时间:   ${new Date(expiresAt * 1000).toISOString()}`);
+            console.log(`║  是否过期:   ${isExpired ? '❌ 已过期' : '✅ 未过期'}                                         ║`);
+            console.log('╠──────────────────────────────────────────────────────────────────────╣');
+            console.log(`║  调用次数:   ${usedCalls} / ${maxCalls} (剩余 ${callsRemaining} 次)                           ║`);
+            console.log(`║  消费额度:   ${ethers.formatEther(usedSpending)} / ${ethers.formatEther(maxSpending)} ETH`);
+            console.log(`║  剩余额度:   ${ethers.formatEther(spendingRemaining)} ETH`);
+            console.log('╠──────────────────────────────────────────────────────────────────────╣');
+            console.log(`║  目标限制:   ${allowedTarget === ethers.ZeroAddress ? '任意地址' : allowedTarget}`);
+            console.log('╚══════════════════════════════════════════════════════════════════════╝');
+            
+            // 总结可用性
+            const canUse = isActive && !isExpired && callsRemaining > 0 && spendingRemaining > 0n;
+            console.log(`\n📊 可用性: ${canUse ? '✅ 可以使用' : '❌ 不可使用'}`);
+            
+            if (!canUse) {
+                console.log('   原因:');
+                if (!isActive) console.log('   • 未激活或已撤销');
+                if (isExpired) console.log('   • 已过期');
+                if (callsRemaining <= 0) console.log('   • 调用次数已用完');
+                if (spendingRemaining <= 0n) console.log('   • 消费额度已用完');
+            }
+
+        } catch (error) {
+            console.log('❌ 查询失败:', error.message);
+        }
+    }
+
     // 主循环
     while (true) {
         await showMenu();
@@ -387,6 +456,9 @@ async function main() {
                 break;
             case '3':
                 await checkBalance();
+                break;
+            case '4':
+                await querySessionKey();
                 break;
             case 'q':
                 console.log('\n正在关闭服务...');
