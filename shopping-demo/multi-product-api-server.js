@@ -9,84 +9,60 @@ const crypto = require('crypto');
 // 商品配置 (来自 ai-agent-payment-demo 项目)
 const PRODUCTS = [
     { 
-        id: 'ai-api-1000', 
+        id: 1, 
         name: 'AI API Package', 
-        name_zh: 'AI API调用包',
         description: '1000次 GPT-4 API calls',
         price: '500000000000000',  // 0.0005 ETH
-        priceEth: '0.0005',
-        port: 3001,
-        category: 'ai-services'
+        port: 3001
     },
     { 
-        id: 'data-cleaning-10gb', 
+        id: 2, 
         name: 'Data Cleaning Service', 
-        name_zh: '数据清洗服务',
-        description: 'Professional data cleaning for 10GB datasets',
+        description: 'Professional data cleaning for 10GB',
         price: '1000000000000000',  // 0.001 ETH
-        priceEth: '0.001',
-        port: 3002,
-        category: 'data-processing'
+        port: 3002
     },
     { 
-        id: 'gpu-training-24h', 
+        id: 3, 
         name: 'Model Training Time', 
-        name_zh: '模型训练时间',
-        description: '24 hours dedicated GPU training time',
+        description: '24 hours GPU training time',
         price: '1500000000000000',  // 0.0015 ETH
-        priceEth: '0.0015',
-        port: 3003,
-        category: 'compute'
+        port: 3003
     },
     { 
-        id: 'analysis-report', 
+        id: 4, 
         name: 'Business Analysis Report', 
-        name_zh: '商业分析报告',
-        description: 'Professional business data analysis report',
+        description: 'Professional business analysis',
         price: '2000000000000000',  // 0.002 ETH
-        priceEth: '0.002',
-        port: 3004,
-        category: 'analytics'
+        port: 3004
     },
     { 
-        id: 'monitoring-7d', 
+        id: 5, 
         name: 'System Monitoring Service', 
-        name_zh: '系统监控服务',
-        description: '7 days 24/7 system performance monitoring',
+        description: '7 days 24/7 monitoring',
         price: '2500000000000000',  // 0.0025 ETH
-        priceEth: '0.0025',
-        port: 3005,
-        category: 'devops'
+        port: 3005
     },
     { 
-        id: 'consulting-1h', 
+        id: 6, 
         name: 'Expert Technical Consulting', 
-        name_zh: '专家技术咨询',
-        description: '1 hour senior technical expert consulting',
+        description: '1 hour expert consulting',
         price: '3000000000000000',  // 0.003 ETH
-        priceEth: '0.003',
-        port: 3006,
-        category: 'consulting'
+        port: 3006
     },
     { 
-        id: 'api-documentation', 
-        name: 'API Documentation Generation', 
-        name_zh: 'API文档生成',
-        description: 'Automatic RESTful API documentation generation',
+        id: 7, 
+        name: 'API Documentation', 
+        description: 'Auto API documentation generation',
         price: '3500000000000000',  // 0.0035 ETH
-        priceEth: '0.0035',
-        port: 3007,
-        category: 'development'
+        port: 3007
     },
     { 
-        id: 'data-backup-1tb', 
+        id: 8, 
         name: 'Data Backup Service', 
-        name_zh: '数据备份服务',
-        description: '1TB enterprise-grade data backup service',
+        description: '1TB enterprise backup service',
         price: '4000000000000000',  // 0.004 ETH
-        priceEth: '0.004',
-        port: 3008,
-        category: 'storage'
+        port: 3008
     }
 ];
 
@@ -110,11 +86,9 @@ function createProductServer(product) {
             product: {
                 id: product.id,
                 name: product.name,
-                name_zh: product.name_zh,
                 description: product.description,
                 price: product.price,
-                priceEth: product.priceEth + ' ETH',
-                category: product.category,
+                priceEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH',
                 port: product.port
             },
             merchant: MERCHANT_ADDRESS,
@@ -135,25 +109,23 @@ function createProductServer(product) {
         res.status(402).json({
             status: 'payment_required',
             code: 402,
-            message: `请支付 ${product.priceEth} ETH 以购买 ${product.name}`,
+            message: `请支付 ${(parseInt(product.price) / 1e18).toFixed(6)} ETH 以购买 ${product.name}`,
             cart: {
                 items: [{ 
                     id: product.id,
                     name: product.name, 
-                    name_zh: product.name_zh,
                     description: product.description,
                     price: product.price, 
-                    priceEth: product.priceEth + ' ETH',
-                    category: product.category
+                    priceEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH'
                 }],
                 totalWei: product.price,
-                totalEth: product.priceEth + ' ETH',
+                totalEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH',
                 itemCount: 1
             },
             payment: {
                 merchant: MERCHANT_ADDRESS,
                 amount: product.price,
-                amountEth: product.priceEth + ' ETH',
+                amountEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH',
                 paymentId,
                 cartHash,
                 sessionId: sessionId || 'unknown'
@@ -185,11 +157,9 @@ function createMainRouter() {
             products: PRODUCTS.map(p => ({
                 id: p.id,
                 name: p.name,
-                name_zh: p.name_zh,
                 description: p.description,
                 price: p.price,
-                priceEth: p.priceEth + ' ETH',
-                category: p.category,
+                priceEth: (parseInt(p.price) / 1e18).toFixed(6) + ' ETH',
                 port: p.port,
                 url: `http://localhost:${p.port}/`
             })),
@@ -199,17 +169,12 @@ function createMainRouter() {
 
     // 搜索商品
     app.get('/api/products/search', (req, res) => {
-        const { q, category } = req.query;
+        const { q } = req.query;
         let results = PRODUCTS;
-        
-        if (category) {
-            results = results.filter(p => p.category === category);
-        }
         
         if (q) {
             results = results.filter(p => 
                 p.name.toLowerCase().includes(q.toLowerCase()) ||
-                p.name_zh.includes(q) ||
                 p.description.toLowerCase().includes(q.toLowerCase())
             );
         }
@@ -219,11 +184,9 @@ function createMainRouter() {
             products: results.map(p => ({
                 id: p.id,
                 name: p.name,
-                name_zh: p.name_zh,
                 description: p.description,
                 price: p.price,
-                priceEth: p.priceEth + ' ETH',
-                category: p.category,
+                priceEth: (parseInt(p.price) / 1e18).toFixed(6) + ' ETH',
                 port: p.port,
                 url: `http://localhost:${p.port}/`
             })),
@@ -233,7 +196,7 @@ function createMainRouter() {
 
     // 根据商品ID获取端口信息
     app.get('/api/products/:id', (req, res) => {
-        const product = PRODUCTS.find(p => p.id === req.params.id);
+        const product = PRODUCTS.find(p => p.id === parseInt(req.params.id));
         
         if (!product) {
             return res.status(404).json({
@@ -246,21 +209,9 @@ function createMainRouter() {
             success: true,
             product: {
                 ...product,
-                priceEth: product.priceEth + ' ETH',
+                priceEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH',
                 url: `http://localhost:${product.port}/`
             }
-        });
-    });
-
-    // 获取分类列表
-    app.get('/api/categories', (req, res) => {
-        const categories = [...new Set(PRODUCTS.map(p => p.category))];
-        res.json({
-            success: true,
-            categories: categories.map(c => ({
-                name: c,
-                products: PRODUCTS.filter(p => p.category === c).length
-            }))
         });
     });
 
@@ -272,7 +223,6 @@ function createMainRouter() {
             productServices: PRODUCTS.map(p => ({
                 id: p.id,
                 name: p.name,
-                name_zh: p.name_zh,
                 port: p.port,
                 url: `http://localhost:${p.port}/`
             }))
@@ -310,10 +260,9 @@ function startAllServers() {
     PRODUCTS.forEach((product, index) => {
         const app = createProductServer(product);
         const server = app.listen(product.port, () => {
-            console.log(`📦 商品 #${(index+1)}: ${product.name} (${product.name_zh})`);
+            console.log(`📦 商品 #${product.id}: ${product.name}`);
             console.log(`   ├── 端口: ${product.port}`);
-            console.log(`   ├── 价格: ${product.priceEth} ETH`);
-            console.log(`   ├── 分类: ${product.category}`);
+            console.log(`   ├── 价格: ${(parseInt(product.price) / 1e18).toFixed(6)} ETH`);
             console.log(`   ├── GET  http://localhost:${product.port}/`);
             console.log(`   └── POST http://localhost:${product.port}/purchase`);
             console.log('');
@@ -334,8 +283,7 @@ function startAllServers() {
     console.log('   端口  商品名称                          价格');
     console.log('   ────  ────────────────────────────────  ──────────');
     PRODUCTS.forEach(p => {
-        const name = `${p.name} (${p.name_zh})`;
-        console.log(`   ${p.port}  ${name.padEnd(32)}  ${p.priceEth} ETH`);
+        console.log(`   ${p.port}  ${p.name.padEnd(32)}  ${(parseInt(p.price) / 1e18).toFixed(6)} ETH`);
     });
     console.log('');
 }
