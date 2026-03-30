@@ -45,6 +45,7 @@ const MODULAR_ACCOUNT_ABI = [
 class SessionKeyManager {
     constructor() {
         this.sessionKeyPair = null;
+        this.createdKeys = []; // 存储已创建的会话密钥列表
     }
     
     generateSessionKey() {
@@ -52,6 +53,20 @@ class SessionKeyManager {
         this.sessionKeyPair = {
             address: wallet.address,
             privateKey: wallet.privateKey,
+            wallet: wallet,
+            createdAt: new Date().toISOString()
+        };
+        // 添加到已创建列表
+        this.createdKeys.push(this.sessionKeyPair);
+        return this.sessionKeyPair;
+    }
+    
+    // 使用已有的会话密钥
+    useExistingKey(address, privateKey) {
+        const wallet = new ethers.Wallet(privateKey);
+        this.sessionKeyPair = {
+            address: address,
+            privateKey: privateKey,
             wallet: wallet
         };
         return this.sessionKeyPair;
@@ -62,6 +77,11 @@ class SessionKeyManager {
             throw new Error('Session key not generated');
         }
         return await this.sessionKeyPair.wallet.signMessage(ethers.getBytes(messageHash));
+    }
+    
+    // 获取已创建的会话密钥列表
+    getCreatedKeys() {
+        return this.createdKeys;
     }
 }
 
@@ -275,42 +295,111 @@ async function main() {
 
             const purchaseData = await purchaseResponse.json();
 
-            // 生成会话密钥
-            console.log('\n🔑 生成会话密钥...');
-            console.log('─'.repeat(50));
-            const sessionKey = sessionKeyManager.generateSessionKey();
-            console.log(`   地址: ${sessionKey.address}`);
-            console.log(`   私钥: ${sessionKey.privateKey.substring(0, 20)}...`);
-            console.log('   ⚠️  这是临时密钥，仅用于本次交易');
-            console.log('─'.repeat(50));
-
-            // 让用户输入最大调用次数
-            const maxCallsInput = await question('\n请输入最大调用次数 (默认5): ');
-            const maxCalls = parseInt(maxCallsInput) || 5;
+            // 询问用户选择会话密钥方式
+            console.log('\n🔐 选择会话密钥方式:');
+            console.log('   1. 使用已有的会话密钥');
+            console.log('   2. 创建新的会话密钥');
+            const keyChoice = await question('\n请选择 (1/2): ');
             
-            if (maxCalls < 1 || maxCalls > 100) {
-                console.log('⚠️  调用次数超出范围，使用默认值 5');
+            let sessionKey, maxCalls, isNewKey = false;
+            
+            if (keyChoice.trim() === '1') {
+                // 使用已有的会话密钥
+                const createdKeys = sessionKeyManager.getCreatedKeys();
+                
+                if (createdKeys.length === 0) {
+                    console.log('❌ 没有已创建的会话密钥，将创建新的');
+                    isNewKey = true;
+                } else {
+                    // 显示已创建的会话密钥列表
+                    console.log('\n📋 已创建的会话密钥:');
+                    console.log('─'.repeat(60));
+                    
+                    for (let i = 0; i < createdKeys.length; i++) {
+                        const key = createdKeys[i];
+                        // 查询该密钥的状态
+                        try {
+                            const keyInfo = await account.getSessionKey(key.address);
+                            const isActive = keyInfo.isActive;
+                            const usedCalls = Number(keyInfo.usedCalls);
+                            const maxCallsVal = Number(keyInfo.maxCalls);
+                            const remaining = maxCallsVal - usedCalls;
+                            
+                            console.log(`   ${i + 1}. 地址: ${key.address}`);
+                            console.log(`      状态: ${isActive ? '激活' : '未激活'} | 剩余次数: ${remaining}`);
+                            console.log(`      创建时间: ${key.createdAt}`);
+                        } catch (e) {
+                            console.log(`   ${i + 1}. 地址: ${key.address}`);
+                            console.log(`      状态: 无法查询`);
+                        }
+                        console.log('─'.repeat(60));
+                    }
+                    
+                    const selectInput = await question('\n请输入要使用的会话密钥序号 (或输入 0 创建新的): ');
+                    const selectIndex = parseInt(selectInput) - 1;
+                    
+                    if (selectIndex >= 0 && selectIndex < createdKeys.length) {
+                        const selectedKey = createdKeys[selectIndex];
+                        sessionKey = sessionKeyManager.useExistingKey(selectedKey.address, selectedKey.privateKey);
+                        
+                        // 查询该密钥的最大调用次数
+                        const keyInfo = await account.getSessionKey(selectedKey.address);
+                        maxCalls = Number(keyInfo.maxCalls);
+                        
+                        console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
+                        console.log(`   最大调用次数: ${maxCalls}`);
+                    } else {
+                        console.log('将创建新的会话密钥');
+                        isNewKey = true;
+                    }
+                }
+            } else {
+                isNewKey = true;
+            }
+            
+            // 创建新的会话密钥
+            if (isNewKey) {
+                console.log('\n🔑 生成会话密钥...');
+                console.log('─'.repeat(50));
+                sessionKey = sessionKeyManager.generateSessionKey();
+                console.log(`   地址: ${sessionKey.address}`);
+                console.log(`   私钥: ${sessionKey.privateKey.substring(0, 20)}...`);
+                console.log('   ⚠️  这是临时密钥，仅用于本次交易');
+                console.log('─'.repeat(50));
+
+                // 让用户输入最大调用次数
+                const maxCallsInput = await question('\n请输入最大调用次数 (默认5): ');
+                maxCalls = parseInt(maxCallsInput) || 5;
+                
+                if (maxCalls < 1 || maxCalls > 100) {
+                    console.log('⚠️  调用次数超出范围，使用默认值 5');
+                }
+                maxCalls = (maxCalls >= 1 && maxCalls <= 100) ? maxCalls : 5;
             }
             const finalMaxCalls = (maxCalls >= 1 && maxCalls <= 100) ? maxCalls : 5;
 
-            // 授权会话密钥
-            console.log('\n📝 授权会话密钥到智能账户...');
-            console.log('─'.repeat(50));
-            const expiresAt = Math.floor(Date.now() / 1000) + 3600;
-            const maxSpending = BigInt(purchaseData.payment.amount) * 12n / 10n;
-            
-            console.log(`   有效期: 1小时`);
-            console.log(`   最大调用次数: ${finalMaxCalls}`);
-            console.log(`   最大额度: ${ethers.formatEther(maxSpending)} ETH`);
-            console.log('─'.repeat(50));
+            // 授权会话密钥 (只有新创建的才需要授权)
+            if (isNewKey) {
+                console.log('\n📝 授权会话密钥到智能账户...');
+                console.log('─'.repeat(50));
+                const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+                const maxSpending = BigInt(purchaseData.payment.amount) * 12n / 10n;
+                
+                console.log(`   有效期: 1小时`);
+                console.log(`   最大调用次数: ${maxCalls}`);
+                console.log(`   最大额度: ${ethers.formatEther(maxSpending)} ETH`);
+                console.log('─'.repeat(50));
 
-            const grantTx = await account.grantSessionKey(
-                sessionKey.address, expiresAt, finalMaxCalls, maxSpending, ethers.ZeroAddress
-            );
-            console.log(`\n⏳ 授权交易: ${grantTx.hash}`);
-            await grantTx.wait();
-            console.log('✅ 授权成功！');
-            console.log(`🔗 https://sepolia.etherscan.io/tx/${grantTx.hash}`);
+                const grantTx = await account.grantSessionKey(
+                    sessionKey.address, expiresAt, maxCalls, maxSpending, ethers.ZeroAddress
+                );
+                console.log(`\n⏳ 授权交易: ${grantTx.hash}`);
+                await grantTx.wait();
+                console.log('✅ 授权成功！');
+                console.log(`🔗 https://sepolia.etherscan.io/tx/${grantTx.hash}`);
+            } else {
+                console.log('\n✅ 使用已有的会话密钥，跳过授权步骤');
+            }
 
             // 签名
             console.log('\n✍️  签名支付消息...');
