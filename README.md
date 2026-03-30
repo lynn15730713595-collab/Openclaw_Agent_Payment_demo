@@ -24,8 +24,10 @@ Openclaw_Agent_Payment_demo/
 │
 ├── shopping-demo/                  # 交互演示
 │   ├── .env.example               # 配置模板
-│   ├── modular-cli.js             # 交互式购物演示
-│   ├── product-api-server.js      # 商品API服务
+│   ├── modular-cli.js             # 单端口购物演示
+│   ├── product-api-server.js      # 单端口商品API服务
+│   ├── multi-shopping-cli.js      # 多端口购物演示 ⭐
+│   ├── multi-product-api-server.js # 多端口商品API服务 ⭐
 │   ├── package.json               # Node.js依赖
 │   └── start.sh                   # 启动脚本
 │
@@ -148,16 +150,74 @@ node modular-cli.js
 
 ## 🎮 Demo操作流程
 
+### 模式选择
+
+本Demo提供两种运行模式：
+
+| 模式 | API服务 | 交互脚本 | 端口 |
+|------|---------|----------|------|
+| **单端口模式** | `product-api-server.js` | `modular-cli.js` | 3000 |
+| **多端口模式** ⭐ | `multi-product-api-server.js` | `multi-shopping-cli.js` | 3000-3008 |
+
+---
+
+### 单端口模式
+
+```
+终端1: node product-api-server.js    # 端口3000
+终端2: node modular-cli.js
+```
+
+---
+
+### 多端口模式 ⭐ 推荐
+
+**启动服务:**
+
+```powershell
+# 终端1: 启动多端口API服务
+node multi-product-api-server.js
+
+# 终端2: 运行交互脚本
+node multi-shopping-cli.js
+```
+
+**端口分配:**
+
+| 商品 | 端口 | 价格 |
+|------|------|------|
+| Premium Widget | 3001 | 0.001 ETH |
+| Gadget Pro | 3002 | 0.002 ETH |
+| Super Device | 3003 | 0.003 ETH |
+| Basic Widget | 3004 | 0.0005 ETH |
+| Mega Gadget | 3005 | 0.005 ETH |
+| Mini Device | 3006 | 0.0015 ETH |
+| Ultra Widget | 3007 | 0.0025 ETH |
+| Pro Device | 3008 | 0.004 ETH |
+| 主路由服务 | 3000 | 商品目录 |
+
+**测试单个商品API:**
+
+```bash
+# 查看商品信息
+curl http://localhost:3001/
+
+# 发起购买
+curl -X POST http://localhost:3001/purchase
+```
+
+---
+
+### 菜单选项
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    交互脚本菜单                                  │
 ├─────────────────────────────────────────────────────────────────┤
-│  1. 📦 查看商品目录                                              │
-│  2. 🛒 购买商品 (完整流程)                                       │
+│  1. 📦 查看所有商品                                              │
+│  2. 🛒 购买商品                                                  │
 │  3. 💰 查询实时余额                                              │
-│  4. 📊 查看会话密钥状态                                          │
-│  5. 🔑 授权会话密钥                                              │
-│  6. ❌ 撤销会话密钥                                              │
+│  4. 📊 查看服务状态                                              │
 │  h. ❓ 帮助                                                      │
 │  q. 🚪 退出                                                      │
 └─────────────────────────────────────────────────────────────────┘
