@@ -262,6 +262,7 @@ async function main() {
         console.log('║  2. 🛒 购买商品                                             ║');
         console.log('║  3. 💰 查询余额                                             ║');
         console.log('║  4. 🔑 查询会话密钥                                         ║');
+        console.log('║  5. 🗑️  删除会话密钥                                        ║');
         console.log('║  q. 🚪 退出                                                 ║');
         console.log('╚════════════════════════════════════════════════════════════╝');
     }
@@ -658,6 +659,84 @@ async function main() {
         }
     }
 
+    // 删除会话密钥
+    async function deleteSessionKey() {
+        const createdKeys = sessionKeyManager.getCreatedKeys();
+        
+        if (createdKeys.length === 0) {
+            console.log('\n❌ 没有已创建的会话密钥');
+            return;
+        }
+
+        // 显示已创建的会话密钥列表
+        console.log('\n📋 已创建的会话密钥:');
+        console.log('─'.repeat(60));
+        
+        for (let i = 0; i < createdKeys.length; i++) {
+            const key = createdKeys[i];
+            try {
+                const keyInfo = await account.sessionKeys(key.address);
+                const isActive = keyInfo.isActive;
+                const usedCalls = Number(keyInfo.usedCalls);
+                const maxCallsVal = Number(keyInfo.maxCalls);
+                const remainingCalls = maxCallsVal - usedCalls;
+                const remainingSpending = keyInfo.maxSpending - keyInfo.usedSpending;
+                
+                console.log(`   ${i + 1}. 地址: ${key.address}`);
+                console.log(`      状态: ${isActive ? '激活' : '未激活'} | 剩余次数: ${remainingCalls} | 剩余额度: ${ethers.formatEther(remainingSpending)} ETH`);
+                console.log(`      创建时间: ${key.createdAt}`);
+            } catch (e) {
+                console.log(`   ${i + 1}. 地址: ${key.address}`);
+                console.log(`      状态: 未授权或查询失败`);
+            }
+            console.log('─'.repeat(60));
+        }
+
+        const selectInput = await question('\n请输入要删除的序号 (或输入 0 取消): ');
+        const selectIndex = parseInt(selectInput) - 1;
+        
+        if (selectIndex < 0 || selectIndex >= createdKeys.length) {
+            console.log('已取消');
+            return;
+        }
+
+        const keyToDelete = createdKeys[selectIndex];
+        console.log(`\n🗑️  即将删除会话密钥: ${keyToDelete.address}`);
+        
+        const confirm = await question('确认删除? (y/n): ');
+        if (confirm.toLowerCase() !== 'y') {
+            console.log('已取消');
+            return;
+        }
+
+        try {
+            // 1. 尝试从合约中撤销
+            console.log('\n📝 从合约中撤销...');
+            const keyInfo = await account.sessionKeys(keyToDelete.address);
+            
+            if (keyInfo.isActive) {
+                const revokeTx = await account.revokeSessionKey(keyToDelete.address);
+                console.log(`   交易: ${revokeTx.hash}`);
+                await revokeTx.wait();
+                console.log('   ✅ 合约撤销成功');
+                console.log(`   🔗 https://sepolia.etherscan.io/tx/${revokeTx.hash}`);
+            } else {
+                console.log('   ⚠️  该密钥未激活或已撤销，跳过合约操作');
+            }
+
+            // 2. 从本地文件中删除
+            console.log('\n📝 从本地文件中删除...');
+            sessionKeyManager.createdKeys.splice(selectIndex, 1);
+            sessionKeyManager.saveKeys();
+            console.log('   ✅ 本地删除成功');
+
+            console.log('\n✅ 会话密钥已删除！');
+
+        } catch (error) {
+            console.log('❌ 删除失败:', error.message);
+        }
+    }
+
     // 主循环
     while (true) {
         await showMenu();
@@ -675,6 +754,9 @@ async function main() {
                 break;
             case '4':
                 await querySessionKey();
+                break;
+            case '5':
+                await deleteSessionKey();
                 break;
             case 'q':
                 console.log('\n正在关闭服务...');
