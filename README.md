@@ -107,25 +107,132 @@ MERCHANT_ADDRESS=0x商户收款地址
 - 建议使用测试网专用钱包
 - `.env` 文件已添加到 `.gitignore`，不会被上传到GitHub
 
-### 4. 部署合约 (可选)
+### 4. 部署合约（可选）
 
-如果你想自己部署合约:
+如果你想自己部署合约，请按以下步骤操作：
+
+#### 步骤1：进入合约目录
 
 ```bash
 cd contracts
-
-# 编译
-forge build
-
-# 部署到Sepolia测试网
-forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY
-
-# 记录输出的合约地址，更新到 shopping-demo/.env 中的 ACCOUNT_ADDRESS
 ```
+
+#### 步骤2：设置环境变量
+
+确保你的 `.env` 文件中已配置以下变量：
+
+```bash
+RPC_URL=https://ethereum-sepolia.publicnode.com
+PRIVATE_KEY=0x你的私钥
+```
+
+#### 步骤3：编译合约
+
+```bash
+forge build
+```
+
+成功后你会看到：
+
+```
+Compiling 1 files with solc 0.8.20
+Compilation succeeded
+```
+
+#### 步骤4：部署合约
+
+```bash
+forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY
+```
+
+#### 步骤5：记录合约地址
+
+部署成功后，终端会输出类似以下内容：
+
+```
+## Setting up 1 EVMs.
+## Setting up 1 EVMs.
+==========================
+Chain 11155111
+
+Estimated gas price: 0.0123 gwei
+
+Estimated total gas used for script: 1234567
+
+Estimated amount required: 0.0152 ETH
+
+==========================
+
+##### sepolia
+✅  [Success]Hash: 0xabc123...
+Contract Address: 0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
+Block: 5678901
+Paid: 0.015 ETH (1234567 gas * 0.0123 gwei)
+```
+
+**复制 `Contract Address` 的值**（如 `0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5`）
+
+#### 步骤6：更新配置文件
+
+将合约地址更新到 `shopping-demo/.env`：
+
+```bash
+ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
+```
+
+#### 步骤7：充值合约
+
+部署后的合约需要 ETH 才能执行支付。
+
+```bash
+# 方式一：使用Node.js脚本充值
+cd shopping-demo
+node -e "
+const { ethers } = require('ethers');
+require('dotenv').config();
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+(async () => {
+  const tx = await wallet.sendTransaction({
+    to: process.env.ACCOUNT_ADDRESS,
+    value: ethers.parseEther('0.01')
+  });
+  console.log('充值交易:', tx.hash);
+  await tx.wait();
+  console.log('充值成功!');
+})();
+"
+
+# 方式二：使用MetaMask等钱包直接转账
+# 在MetaMask中发送 0.01 ETH 到合约地址
+```
+
+#### 步骤8：验证部署
+
+```bash
+cd shopping-demo
+node openclaw-bridge.js balance
+```
+
+你应该看到智能账户有余额。
+
+---
 
 **获取Sepolia测试ETH:**
 - https://sepoliafaucet.com/
 - https://www.alchemy.com/faucets/ethereum-sepolia
+
+---
+
+**使用已部署的合约（无需自己部署）:**
+
+如果你想跳过部署步骤，可以直接使用已部署好的合约：
+
+```bash
+ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
+```
+
+只需充值 ETH 到该地址即可开始使用。
 
 ### 5. 运行Demo
 
