@@ -151,24 +151,20 @@ forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private
 
 ```
 ## Setting up 1 EVMs.
-## Setting up 1 EVMs.
 ==========================
 Chain 11155111
 
 Estimated gas price: 0.0123 gwei
 
-Estimated total gas used for script: 1234567
-
-Estimated amount required: 0.0152 ETH
-
-==========================
-
 ##### sepolia
 ✅  [Success]Hash: 0xabc123...
 Contract Address: 0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
 Block: 5678901
-Paid: 0.015 ETH (1234567 gas * 0.0123 gwei)
+
+✅  Funded account with 0.05 ETH
 ```
+
+**部署脚本会自动充值 0.05 ETH 到合约账户**，无需手动充值。
 
 **复制 `Contract Address` 的值**（如 `0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5`）
 
@@ -180,41 +176,14 @@ Paid: 0.015 ETH (1234567 gas * 0.0123 gwei)
 ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
 ```
 
-#### 步骤7：充值合约
-
-部署后的合约需要 ETH 才能执行支付。
-
-```bash
-# 方式一：使用Node.js脚本充值
-cd shopping-demo
-node -e "
-const { ethers } = require('ethers');
-require('dotenv').config();
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-(async () => {
-  const tx = await wallet.sendTransaction({
-    to: process.env.ACCOUNT_ADDRESS,
-    value: ethers.parseEther('0.01')
-  });
-  console.log('充值交易:', tx.hash);
-  await tx.wait();
-  console.log('充值成功!');
-})();
-"
-
-# 方式二：使用MetaMask等钱包直接转账
-# 在MetaMask中发送 0.01 ETH 到合约地址
-```
-
-#### 步骤8：验证部署
+#### 步骤7：验证部署
 
 ```bash
 cd shopping-demo
 node openclaw-bridge.js balance
 ```
 
-你应该看到智能账户有余额。
+你应该看到智能账户有 0.05 ETH 余额。
 
 ---
 
