@@ -1,4 +1,4 @@
-# AI Agent Payment Demo
+# OpenClaw Agent Payment Demo
 
 基于会话密钥(Session Key)的AI代理支付演示项目。
 
@@ -10,25 +10,31 @@
 - 用户通过授权会话密钥，限制AI的支付权限
 - 支持多重限制：有效期、调用次数、消费额度、目标地址
 - 防篡改、防重放攻击
+- **支持OpenClaw对话框直接交互**
 
 ## 🏗️ 项目结构
 
 ```
 Openclaw_Agent_Payment_demo/
-├── contracts/                      # 智能合约
-│   ├── foundry.toml               # Foundry配置
+├── contracts/                              # 智能合约
+│   ├── foundry.toml                        # Foundry配置
 │   ├── src/
-│   │   └── ModularAccount.sol     # 模块化智能账户合约
+│   │   └── ModularAccount.sol              # 模块化智能账户合约
 │   └── script/
-│       └── DeployModular.s.sol    # 部署脚本
+│       └── DeployModular.s.sol             # 部署脚本
 │
-├── shopping-demo/                  # 交互演示
-│   ├── .env.example               # 配置模板
-│   ├── multi-shopping-cli.js      # 整合脚本（API+交互）
-│   ├── package.json               # Node.js依赖
-│   └── start.sh                   # 启动脚本
+├── shopping-demo/                          # 交互演示
+│   ├── .env.example                        # 配置模板
+│   ├── openclaw-bridge.js                  # ⭐ OpenClaw交互脚本
+│   ├── multi-shopping-cli.js               # 终端交互式CLI
+│   ├── package.json                        # Node.js依赖
+│   └── session-keys.json                   # 会话密钥存储
 │
-└── README.md                       # 本文件
+├── skills/                                 # OpenClaw Skill
+│   └── openclaw-agent-payment-demo/
+│       └── SKILL.md                        # ⭐ 交互指南
+│
+└── README.md                               # 本文件
 ```
 
 ## 🚀 快速开始
@@ -52,7 +58,6 @@ foundryup
 
 **Windows:**
 ```powershell
-# 使用 PowerShell
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
 ```
@@ -68,16 +73,9 @@ npm install
 
 ### 3. 配置环境变量
 
-#### Linux/macOS:
 ```bash
 cp shopping-demo/.env.example shopping-demo/.env
 nano shopping-demo/.env  # 或使用你喜欢的编辑器
-```
-
-#### Windows PowerShell:
-```powershell
-cp shopping-demo/.env.example shopping-demo/.env
-notepad shopping-demo/.env
 ```
 
 #### 配置内容说明:
@@ -93,12 +91,8 @@ PRIVATE_KEY=0x你的私钥
 # 模块化账户地址 (部署后填入)
 ACCOUNT_ADDRESS=0x部署的合约地址
 
-# 商户收款地址 (可以是任意地址，用于接收支付)
+# 商户收款地址
 MERCHANT_ADDRESS=0x商户收款地址
-
-# 商品API服务
-API_BASE_URL=http://localhost:3000
-PORT=3000
 ```
 
 ⚠️ **安全提醒:**
@@ -112,9 +106,6 @@ PORT=3000
 
 ```bash
 cd contracts
-
-# 安装依赖
-forge install
 
 # 编译
 forge build
@@ -131,86 +122,68 @@ forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private
 
 ### 5. 运行Demo
 
+#### 方式一：终端交互式CLI
+
 ```bash
 cd shopping-demo
-
-# 一键启动（自动启动API服务和交互界面）
 node multi-shopping-cli.js
 ```
 
-## 🎮 Demo操作流程
-
-## 🎮 Demo操作流程
-
-### 启动服务
+#### 方式二：OpenClaw对话框交互
 
 ```bash
-# 终端1: 启动多端口API服务
-node multi-product-api-server.js
-
-# 终端2: 运行交互脚本
-node multi-shopping-cli.js
+cd shopping-demo
+node openclaw-bridge.js <command>
 ```
 
-**启动服务:**
-
-```powershell
-# 终端1: 启动多端口API服务
-node multi-product-api-server.js
-
-# 终端2: 运行交互脚本
-node multi-shopping-cli.js
-```
-
-**端口分配:**
-
-| 商品 | 端口 | 价格 |
-|------|------|------|
-| Premium Widget | 3001 | 0.001 ETH |
-| Gadget Pro | 3002 | 0.002 ETH |
-| Super Device | 3003 | 0.003 ETH |
-| Basic Widget | 3004 | 0.0005 ETH |
-| Mega Gadget | 3005 | 0.005 ETH |
-| Mini Device | 3006 | 0.0015 ETH |
-| Ultra Widget | 3007 | 0.0025 ETH |
-| Pro Device | 3008 | 0.004 ETH |
-| 主路由服务 | 3000 | 商品目录 |
-
-**测试单个商品API:**
-
+支持的命令：
 ```bash
-# 查看商品信息
-curl http://localhost:3001/
-
-# 发起购买
-curl -X POST http://localhost:3001/purchase
+node openclaw-bridge.js products              # 查看商品列表
+node openclaw-bridge.js balance               # 查询余额
+node openclaw-bridge.js keys                  # 列出会话密钥
+node openclaw-bridge.js purchase <productId>  # 发起购买
+node openclaw-bridge.js pay <productId> <keyIndex>  # 执行支付
+node openclaw-bridge.js key-create [calls] [eth]    # 创建会话密钥
+node openclaw-bridge.js key-delete <index>          # 删除会话密钥
 ```
 
----
+## 🎮 OpenClaw集成
 
-### 菜单选项
+本项目已集成到OpenClaw，可以在对话框中直接进行购物交互。
+
+### 交互流程
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    交互脚本菜单                                  │
-├─────────────────────────────────────────────────────────────────┤
-│  1. 📦 查看所有商品                                              │
-│  2. 🛒 购买商品                                                  │
-│  3. 💰 查询实时余额                                              │
-│  4. 📊 查看服务状态                                              │
-│  h. ❓ 帮助                                                      │
-│  q. 🚪 退出                                                      │
-└─────────────────────────────────────────────────────────────────┘
+用户: 商品列表
+OpenClaw: 返回8个商品目录
+
+用户: 我要购买AI API Package
+OpenClaw: 显示购物车，确认购买? (y/n)
+
+用户: y
+OpenClaw: 选择会话密钥方式 (1.已有 2.新建)
+
+用户: 1
+OpenClaw: 显示会话密钥列表，标注额度是否充足
+
+用户: 2
+OpenClaw: 执行支付，返回交易链接
+
+🎉 购买完成！
 ```
 
-### 完整购物流程:
+### 商品列表
 
-1. 选择 `2` → 购买商品
-2. 输入商品名称（如 `premium widget`）
-3. 确认购物车
-4. 自动生成会话密钥并授权
-5. 会话密钥签名支付消息
-6. 交易上链，商户收款
+| ID | 商品名称 | 价格 (ETH) |
+|----|---------|-----------|
+| 1 | AI API Package | 0.0005 |
+| 2 | Data Cleaning Service | 0.001 |
+| 3 | Model Training Time | 0.0015 |
+| 4 | Business Analysis Report | 0.002 |
+| 5 | System Monitoring Service | 0.0025 |
+| 6 | Expert Technical Consulting | 0.003 |
+| 7 | API Documentation | 0.0035 |
+| 8 | Data Backup Service | 0.004 |
 
 ## 🔧 核心合约
 
@@ -284,6 +257,15 @@ struct SessionKey {
 | 防重放 | 每笔支付只能执行一次 |
 | 可撤销 | 用户可随时撤销会话密钥 |
 
+## 📁 核心文件说明
+
+| 文件 | 说明 |
+|------|------|
+| `shopping-demo/openclaw-bridge.js` | OpenClaw对话框调用的主脚本，支持命令行参数 |
+| `shopping-demo/multi-shopping-cli.js` | 终端交互式CLI，带菜单界面 |
+| `skills/openclaw-agent-payment-demo/SKILL.md` | OpenClaw Skill交互指南 |
+| `contracts/src/ModularAccount.sol` | 模块化账户智能合约 |
+
 ## 🛠️ 常见问题
 
 ### Q: 如何获取测试ETH?
@@ -307,12 +289,6 @@ struct SessionKey {
 3. 会话密钥未过期、未超次数/额度
 4. 签名验证通过
 
-### Q: Windows上如何编辑.env?
-
-```powershell
-notepad shopping-demo/.env
-```
-
 ## 📝 License
 
 MIT
@@ -321,3 +297,4 @@ MIT
 
 - [Foundry](https://getfoundry.sh/) - 智能合约开发框架
 - [ethers.js](https://docs.ethers.org/) - 以太坊JavaScript库
+- [OpenClaw](https://openclaw.ai) - AI代理框架
