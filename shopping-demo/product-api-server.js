@@ -11,14 +11,14 @@ app.use(express.json());
 
 // 商品数据
 const PRODUCTS = {
-    1: { id: 1, name: 'Premium Widget', price: '1000000000000000' },     // 0.001 ETH
-    2: { id: 2, name: 'Gadget Pro', price: '2000000000000000' },         // 0.002 ETH
-    3: { id: 3, name: 'Super Device', price: '3000000000000000' },       // 0.003 ETH
-    4: { id: 4, name: 'Basic Widget', price: '500000000000000' },        // 0.0005 ETH
-    5: { id: 5, name: 'Mega Gadget', price: '5000000000000000' },        // 0.005 ETH
-    6: { id: 6, name: 'Mini Device', price: '1500000000000000' },        // 0.0015 ETH
-    7: { id: 7, name: 'Ultra Widget', price: '2500000000000000' },       // 0.0025 ETH
-    8: { id: 8, name: 'Pro Device', price: '4000000000000000' },         // 0.004 ETH
+    1: { id: 1, name: 'AI API Package', price: '500000000000000' },         // 0.0005 ETH
+    2: { id: 2, name: 'Data Cleaning Service', price: '1000000000000000' }, // 0.001 ETH
+    3: { id: 3, name: 'Model Training Time', price: '1500000000000000' },   // 0.0015 ETH
+    4: { id: 4, name: 'Business Analysis Report', price: '2000000000000000' }, // 0.002 ETH
+    5: { id: 5, name: 'System Monitoring Service', price: '2500000000000000' }, // 0.0025 ETH
+    6: { id: 6, name: 'Expert Technical Consulting', price: '3000000000000000' }, // 0.003 ETH
+    7: { id: 7, name: 'API Documentation', price: '3500000000000000' },     // 0.0035 ETH
+    8: { id: 8, name: 'Data Backup Service', price: '4000000000000000' },   // 0.004 ETH
 };
 
 // 商户配置
