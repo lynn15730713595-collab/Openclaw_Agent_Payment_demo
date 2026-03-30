@@ -111,19 +111,26 @@ MERCHANT_ADDRESS=0x商户收款地址
 
 如果你想自己部署合约，请按以下步骤操作：
 
-#### 步骤1：进入合约目录
+#### 步骤1：配置环境变量
+
+部署合约需要读取 `PRIVATE_KEY` 和 `RPC_URL` 环境变量。
+
+**方式一：复制 .env 到 contracts 目录（推荐）**
+
+```bash
+cp shopping-demo/.env contracts/.env
+```
+
+**方式二：加载环境变量后部署**
+
+```bash
+source shopping-demo/.env
+```
+
+#### 步骤2：进入合约目录
 
 ```bash
 cd contracts
-```
-
-#### 步骤2：设置环境变量
-
-确保你的 `.env` 文件中已配置以下变量：
-
-```bash
-RPC_URL=https://ethereum-sepolia.publicnode.com
-PRIVATE_KEY=0x你的私钥
 ```
 
 #### 步骤3：编译合约
@@ -142,6 +149,10 @@ Compilation succeeded
 #### 步骤4：部署合约
 
 ```bash
+# 如果已在 contracts 目录创建 .env 文件
+forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast
+
+# 或者通过命令行传递参数
 forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY
 ```
 
