@@ -22,7 +22,6 @@ Openclaw_Agent_Payment_demo/
 ├── contracts/                              # 智能合约
 │   ├── .env.example                        # 部署环境变量模板
 │   ├── foundry.toml                        # Foundry配置
-│   ├── foundry.lock                        # Foundry依赖锁定
 │   ├── src/
 │   │   └── ModularAccount.sol              # 模块化智能账户合约
 │   └── script/
@@ -51,6 +50,17 @@ cd Openclaw_Agent_Payment_demo
 
 ### 2. 安装依赖
 
+#### 2.1 安装 Foundry（用于部署合约）
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+或参考官方文档: https://book.getfoundry.sh/getting-started/installation
+
+#### 2.2 安装 Node.js 依赖
+
 ```bash
 cd shopping-demo
 npm install
@@ -58,6 +68,21 @@ cd ..
 ```
 
 ### 3. 配置环境变量
+
+#### 3.1 配置合约部署环境变量
+
+```bash
+cp contracts/.env.example contracts/.env
+```
+
+编辑 `contracts/.env`，填入你的私钥：
+
+```bash
+# 用户私钥 (⚠️ 使用测试网钱包，不要使用有真实资产的钱包!)
+PRIVATE_KEY=0x你的私钥
+```
+
+#### 3.2 配置 Demo 运行环境变量
 
 ```bash
 cp shopping-demo/.env.example shopping-demo/.env
@@ -70,11 +95,11 @@ cp shopping-demo/.env.example shopping-demo/.env
 RPC_URL=https://ethereum-sepolia.publicnode.com
 CHAIN_ID=11155111
 
-# 用户私钥 (⚠️ 请替换为你自己的私钥，不要使用真实资产!)
+# 用户私钥 (⚠️ 与 contracts/.env 中的私钥相同)
 PRIVATE_KEY=0x你的私钥
 
-# 模块化账户地址 (使用已部署的合约或自己部署后填入)
-ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
+# 模块化账户地址 (部署合约后填入)
+ACCOUNT_ADDRESS=0x部署后的合约地址
 
 # 商户收款地址 (已预设，可修改)
 MERCHANT_ADDRESS=0x1ef391d266f3BCdF0d9b30660FDc4032B868cDeb
@@ -83,31 +108,73 @@ MERCHANT_ADDRESS=0x1ef391d266f3BCdF0d9b30660FDc4032B868cDeb
 ⚠️ **安全提醒:**
 - 不要在 `.env` 文件中存储有真实资产的私钥
 - 建议使用测试网专用钱包
-- `.env` 文件已添加到 `.gitignore`，不会被上传到GitHub
+- `.env` 文件已添加到 `.gitignore`，不会被上传到 GitHub
 
-### 4. 获取测试ETH
+### 4. 获取测试 ETH
 
-**如果使用已部署的合约，需要向合约地址充值 ETH：**
+在部署合约之前，确保你的钱包有足够的 Sepolia 测试 ETH。
 
-```bash
-# 合约地址
-0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
-```
-
-**获取Sepolia测试ETH:**
+**获取测试 ETH:**
 - https://sepoliafaucet.com/
 - https://www.alchemy.com/faucets/ethereum-sepolia
 
-**充值方式：** 使用 MetaMask 或其他钱包，将测试 ETH 发送到合约地址。
+### 5. 部署智能账户合约
 
-### 5. 运行Demo
+#### 5.1 编译合约
+
+```bash
+cd contracts
+forge build
+```
+
+成功后你会看到：
+
+```
+Compiling 1 files with solc 0.8.24
+Compilation succeeded
+```
+
+#### 5.2 部署合约
+
+```bash
+forge script script/DeployModular.s.sol \
+  --rpc-url https://ethereum-sepolia.publicnode.com \
+  --broadcast
+```
+
+#### 5.3 记录合约地址
+
+部署成功后会输出：
+
+```
+##### sepolia
+✅  [Success]Hash: 0xabc123...
+Contract Address: 0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
+✅  Funded account with 0.05 ETH
+
+=== Deployment Complete ===
+Copy to .env:
+ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
+```
+
+**部署脚本会自动充值 0.05 ETH 到合约账户。**
+
+#### 5.4 更新配置文件
+
+将输出的合约地址填入 `shopping-demo/.env`：
+
+```bash
+ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
+```
+
+### 6. 运行 Demo
 
 ```bash
 cd shopping-demo
 node multi-shopping-cli.js
 ```
 
-脚本会自动启动API服务（端口 3000-3008），然后显示交互菜单。
+脚本会自动启动 API 服务（端口 3000-3008），然后显示交互菜单。
 
 ---
 
@@ -168,70 +235,6 @@ node openclaw-bridge.js <command>
 | 6 | Expert Technical Consulting | 专家技术咨询 | 0.003 |
 | 7 | API Documentation | API文档服务 | 0.0035 |
 | 8 | Data Backup Service | 数据备份服务 | 0.004 |
-
----
-
-## 🔧 部署自己的合约（可选）
-
-如果你想自己部署合约，需要安装 Foundry。
-
-### 安装 Foundry
-
-```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
-
-或参考官方文档: https://book.getfoundry.sh/getting-started/installation
-
-### 部署步骤
-
-**步骤1：配置环境变量**
-
-```bash
-cp contracts/.env.example contracts/.env
-```
-
-编辑 `contracts/.env`：
-
-```bash
-PRIVATE_KEY=0x你的私钥
-```
-
-**步骤2：编译合约**
-
-```bash
-cd contracts
-forge build
-```
-
-**步骤3：部署合约**
-
-```bash
-forge script script/DeployModular.s.sol \
-  --rpc-url https://ethereum-sepolia.publicnode.com \
-  --broadcast
-```
-
-**步骤4：记录合约地址**
-
-部署成功后会输出：
-
-```
-✅  [Success]Hash: 0xabc123...
-Contract Address: 0x你的合约地址
-✅  Funded account with 0.05 ETH
-```
-
-**部署脚本会自动充值 0.05 ETH 到合约账户。**
-
-**步骤5：更新配置**
-
-将合约地址更新到 `shopping-demo/.env`：
-
-```bash
-ACCOUNT_ADDRESS=0x你的合约地址
-```
 
 ---
 
