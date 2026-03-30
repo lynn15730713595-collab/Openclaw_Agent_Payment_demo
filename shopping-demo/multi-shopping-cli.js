@@ -466,7 +466,7 @@ async function main() {
         console.log(`║  智能账户:   ${ethers.formatEther(accountBalance).padEnd(12)} ETH                      ║`);
         console.log(`║  地址:       ${CONFIG.accountAddress}                            ║`);
         console.log('╠──────────────────────────────────────────────────────────────────────╣');
-        console.log(`║  商户收款:   ${ethers.formatEther(merchantBalance).padEnd(12)} ETH                      ║');
+        console.log(`║  商户收款:   ${ethers.formatEther(merchantBalance).padEnd(12)} ETH                      ║`);
         console.log(`║  地址:       ${CONFIG.merchantAddress}                            ║`);
         console.log('╚══════════════════════════════════════════════════════════════════════╝');
     }
