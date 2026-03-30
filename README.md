@@ -24,8 +24,7 @@ Openclaw_Agent_Payment_demo/
 │
 ├── shopping-demo/                  # 交互演示
 │   ├── .env.example               # 配置模板
-│   ├── multi-shopping-cli.js      # 交互脚本
-│   ├── multi-product-api-server.js # 商品API服务 (多端口)
+│   ├── multi-shopping-cli.js      # 整合脚本（API+交互）
 │   ├── package.json               # Node.js依赖
 │   └── start.sh                   # 启动脚本
 │
@@ -135,10 +134,7 @@ forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private
 ```bash
 cd shopping-demo
 
-# 终端1: 启动API服务 (启动9个服务: 3000-3008)
-node multi-product-api-server.js
-
-# 终端2: 运行交互脚本
+# 一键启动（自动启动API服务和交互界面）
 node multi-shopping-cli.js
 ```
 

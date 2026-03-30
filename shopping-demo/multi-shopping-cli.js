@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * AI购物会话密钥Demo - 多端口版本
- * 每个商品有独立的API端口
+ * AI购物会话密钥Demo - 整合版本
+ * 一键启动API服务和交互界面
  */
 
 const readline = require('readline');
 const crypto = require('crypto');
 const { ethers } = require('ethers');
+const express = require('express');
 require('dotenv').config({ path: '.env' });
 
 // ============ 配置 ============
@@ -15,21 +16,27 @@ const CONFIG = {
     privateKey: process.env.PRIVATE_KEY,
     accountAddress: process.env.ACCOUNT_ADDRESS,
     merchantAddress: process.env.MERCHANT_ADDRESS || '0x1ef391d266f3BCdF0d9b30660FDc4032B868cDeb',
-    mainApiUrl: process.env.API_BASE_URL || 'http://localhost:3000',
     chainId: parseInt(process.env.CHAIN_ID || '11155111')
 };
+
+// ============ 商品配置 ============
+const PRODUCTS = [
+    { id: 1, name: 'AI API Package', description: '1000次 GPT-4 API calls', price: '500000000000000', port: 3001 },
+    { id: 2, name: 'Data Cleaning Service', description: 'Professional data cleaning', price: '1000000000000000', port: 3002 },
+    { id: 3, name: 'Model Training Time', description: '24 hours GPU training', price: '1500000000000000', port: 3003 },
+    { id: 4, name: 'Business Analysis Report', description: 'Professional analysis', price: '2000000000000000', port: 3004 },
+    { id: 5, name: 'System Monitoring Service', description: '7 days 24/7 monitoring', price: '2500000000000000', port: 3005 },
+    { id: 6, name: 'Expert Technical Consulting', description: '1 hour consulting', price: '3000000000000000', port: 3006 },
+    { id: 7, name: 'API Documentation', description: 'Auto documentation', price: '3500000000000000', port: 3007 },
+    { id: 8, name: 'Data Backup Service', description: '1TB backup service', price: '4000000000000000', port: 3008 }
+];
 
 // ============ 模块化账户ABI ============
 const MODULAR_ACCOUNT_ABI = [
     "function grantSessionKey(address key, uint64 expiresAt, uint32 maxCalls, uint256 maxSpending, address allowedTarget) external",
     "function revokeSessionKey(address key) external",
     "function sessionKeys(address) view returns (bool isActive, uint64 expiresAt, uint32 maxCalls, uint32 usedCalls, uint256 maxSpending, uint256 usedSpending, address allowedTarget)",
-    "function getSessionKey(address) view returns (bool isActive, uint64 expiresAt, uint32 maxCalls, uint32 usedCalls, uint256 maxSpending, uint256 usedSpending, address allowedTarget)",
-    "function getRemainingLimit(address) view returns (uint256)",
-    "function isSessionKeyValid(address) view returns (bool)",
     "function payWithSessionKey(address sessionKey, address merchant, uint256 amount, bytes32 paymentId, bytes32 cartHash, bytes calldata signature) external",
-    "function execute(address target, uint256 value, bytes data) external returns (bytes)",
-    "function withdraw(uint256 amount) external",
     "function owner() view returns (address)",
     "function usedPayments(bytes32) view returns (bool)"
 ];
@@ -58,43 +65,125 @@ class SessionKeyManager {
     }
 }
 
-// ============ 购物车格式化 ============
-function formatCartCard(cart, productPort) {
-    const width = 60;
-    const line = '═'.repeat(width);
-    
-    let output = '\n';
-    output += '╔' + line + '╗\n';
-    output += '║' + centerText('🛒 购物车详情', width) + '║\n';
-    output += '╠' + line + '╠\n';
-    output += '║' + ` 商品端口: ${productPort}`.padEnd(width) + '║\n';
-    output += '╠' + line + '╠\n';
-    
-    for (const item of cart.items) {
-        output += '║' + `   • ${item.name.padEnd(28)} ${item.priceEth.padStart(10)}`.padEnd(width) + '║\n';
-    }
-    
-    output += '╠' + line + '╠\n';
-    output += '║' + ` 总计: ${cart.totalEth}`.padEnd(width) + '║\n';
-    output += '╚' + line + '╝\n';
-    
-    return output;
+// ============ API服务器 ============
+const servers = [];
+
+function createProductServer(product) {
+    const app = express();
+    app.use(express.json());
+
+    app.get('/', (req, res) => {
+        res.json({
+            success: true,
+            product: {
+                id: product.id,
+                name: product.name,
+                description: product.description,
+                price: product.price,
+                priceEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH',
+                port: product.port
+            },
+            merchant: CONFIG.merchantAddress
+        });
+    });
+
+    app.post('/purchase', (req, res) => {
+        const { sessionId } = req.body;
+        const paymentId = '0x' + crypto.randomBytes(32).toString('hex');
+        const cartHash = '0x' + crypto.randomBytes(32).toString('hex');
+
+        res.status(402).json({
+            status: 'payment_required',
+            code: 402,
+            message: `请支付 ${(parseInt(product.price) / 1e18).toFixed(6)} ETH`,
+            cart: {
+                items: [{ 
+                    id: product.id, name: product.name, 
+                    price: product.price, priceEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH'
+                }],
+                totalWei: product.price,
+                totalEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH',
+                itemCount: 1
+            },
+            payment: {
+                merchant: CONFIG.merchantAddress,
+                amount: product.price,
+                amountEth: (parseInt(product.price) / 1e18).toFixed(6) + ' ETH',
+                paymentId, cartHash,
+                sessionId: sessionId || 'unknown'
+            }
+        });
+    });
+
+    return app;
 }
 
-function centerText(text, width) {
-    const padding = Math.max(0, width - text.length);
-    const left = Math.floor(padding / 2);
-    const right = padding - left;
-    return ' '.repeat(left) + text + ' '.repeat(right);
+function createMainRouter() {
+    const app = express();
+    app.use(express.json());
+
+    app.get('/api/products', (req, res) => {
+        res.json({
+            success: true,
+            merchant: CONFIG.merchantAddress,
+            products: PRODUCTS.map(p => ({
+                id: p.id, name: p.name, description: p.description,
+                price: p.price, priceEth: (parseInt(p.price) / 1e18).toFixed(6) + ' ETH',
+                port: p.port, url: `http://localhost:${p.port}/`
+            }))
+        });
+    });
+
+    app.get('/api/status', (req, res) => {
+        res.json({ success: true, status: 'running' });
+    });
+
+    return app;
 }
 
-// ============ 主程序 ============
+function startApiServers() {
+    return new Promise((resolve) => {
+        console.log('\n');
+        console.log('╔════════════════════════════════════════════════════════════╗');
+        console.log('║          🚀 启动商品API服务...                              ║');
+        console.log('╚════════════════════════════════════════════════════════════╝');
+        
+        // 主路由
+        const mainApp = createMainRouter();
+        const mainServer = mainApp.listen(3000, () => {
+            console.log('   ✅ 主路由服务: 端口 3000');
+        });
+        servers.push(mainServer);
+
+        // 商品服务
+        PRODUCTS.forEach((product) => {
+            const app = createProductServer(product);
+            const server = app.listen(product.port, () => {
+                console.log(`   ✅ ${product.name}: 端口 ${product.port}`);
+            });
+            servers.push(server);
+        });
+
+        setTimeout(() => {
+            console.log('');
+            console.log('════════════════════════════════════════════════════════════');
+            console.log('   ✅ API服务已启动 (9个端口: 3000-3008)');
+            console.log('════════════════════════════════════════════════════════════');
+            resolve();
+        }, 500);
+    });
+}
+
+// ============ 交互界面 ============
 async function main() {
     // 检查配置
     if (!CONFIG.privateKey || !CONFIG.accountAddress) {
         console.error('❌ 请先配置 .env 文件');
         process.exit(1);
     }
+
+    // 启动API服务
+    await startApiServers();
 
     // 初始化
     const provider = new ethers.JsonRpcProvider(CONFIG.rpcUrl);
@@ -113,21 +202,19 @@ async function main() {
     async function showMenu() {
         console.log('\n');
         console.log('╔════════════════════════════════════════════════════════════╗');
-        console.log('║            🏪 多端口商品购物演示                           ║');
+        console.log('║            🏪 AI购物会话密钥Demo                           ║');
         console.log('╠════════════════════════════════════════════════════════════╣');
-        console.log('║  1. 📦 查看所有商品（多端口）                               ║');
-        console.log('║  2. 🛒 购买商品（输入端口号）                               ║');
-        console.log('║  3. 💰 查询余额                                            ║');
-        console.log('║  4. 📊 查看服务状态                                        ║');
-        console.log('║  h. ❓ 帮助                                                ║');
-        console.log('║  q. 🚪 退出                                                ║');
+        console.log('║  1. 📦 查看商品目录                                         ║');
+        console.log('║  2. 🛒 购买商品                                             ║');
+        console.log('║  3. 💰 查询余额                                             ║');
+        console.log('║  q. 🚪 退出                                                 ║');
         console.log('╚════════════════════════════════════════════════════════════╝');
     }
 
     // 查看所有商品
     async function viewAllProducts() {
         try {
-            const response = await fetch(`${CONFIG.mainApiUrl}/api/products`);
+            const response = await fetch('http://localhost:3000/api/products');
             const data = await response.json();
             
             console.log('\n');
@@ -136,11 +223,7 @@ async function main() {
             console.log('╠════════════════════════════════════════════════════════════╣');
             
             for (const product of data.products) {
-                console.log(`║  商品 #${product.id}: ${product.name.padEnd(24)}      ║`);
-                console.log(`║    价格: ${product.priceEth.padEnd(12)}  端口: ${product.port}          ║`);
-                console.log(`║    描述: ${product.description.substring(0, 30).padEnd(30)}║`);
-                console.log(`║    URL: http://localhost:${product.port}/                   ║`);
-                console.log('╠────────────────────────────────────────────────────────────╣');
+                console.log(`║  #${product.id} ${product.name.padEnd(20)} ${product.priceEth.padStart(10)}     ║`);
             }
             
             console.log('╚════════════════════════════════════════════════════════════╝');
@@ -151,23 +234,21 @@ async function main() {
 
     // 购买商品
     async function purchaseProduct() {
-        console.log('\n商品端口列表:');
-        console.log('  3001 - AI API Package - 0.0005 ETH');
-        console.log('  3002 - Data Cleaning Service - 0.001 ETH');
-        console.log('  3003 - Model Training Time - 0.0015 ETH');
-        console.log('  3004 - Business Analysis Report - 0.002 ETH');
-        console.log('  3005 - System Monitoring Service - 0.0025 ETH');
-        console.log('  3006 - Expert Technical Consulting - 0.003 ETH');
-        console.log('  3007 - API Documentation Generation - 0.0035 ETH');
-        console.log('  3008 - Data Backup Service - 0.004 ETH');
+        console.log('\n商品列表:');
+        PRODUCTS.forEach(p => {
+            console.log(`   ${p.id}. ${p.name} - ${(parseInt(p.price) / 1e18).toFixed(6)} ETH`);
+        });
         
-        const portInput = await question('\n请输入商品端口 (如 3001): ');
-        const port = parseInt(portInput);
+        const idInput = await question('\n请输入商品ID (1-8): ');
+        const productId = parseInt(idInput);
         
-        if (isNaN(port) || port < 3001 || port > 3008) {
-            console.log('❌ 无效端口，请输入 3001-3008');
+        if (isNaN(productId) || productId < 1 || productId > 8) {
+            console.log('❌ 无效商品ID');
             return;
         }
+
+        const product = PRODUCTS.find(p => p.id === productId);
+        const port = product.port;
 
         try {
             // 获取商品信息
@@ -175,9 +256,8 @@ async function main() {
             const productData = await infoResponse.json();
             
             console.log('\n商品信息:');
-            console.log(`  名称: ${productData.product.name}`);
-            console.log(`  描述: ${productData.product.description}`);
-            console.log(`  价格: ${productData.product.priceEth}`);
+            console.log(`   名称: ${productData.product.name}`);
+            console.log(`   价格: ${productData.product.priceEth}`);
             
             const confirm = await question('\n确认购买? (y/n): ');
             if (confirm.toLowerCase() !== 'y') {
@@ -192,13 +272,7 @@ async function main() {
                 body: JSON.stringify({})
             });
 
-            if (purchaseResponse.status !== 402) {
-                console.log('❌ 购买请求失败');
-                return;
-            }
-
             const purchaseData = await purchaseResponse.json();
-            console.log(formatCartCard(purchaseData.cart, port));
 
             // 生成会话密钥
             console.log('\n🔑 生成会话密钥...');
@@ -216,74 +290,47 @@ async function main() {
             const maxCalls = 5;
             const maxSpending = BigInt(purchaseData.payment.amount) * 12n / 10n;
             
-            console.log(`   会话密钥地址: ${sessionKey.address}`);
-            console.log(`   有效期: 1小时 (至 ${new Date(expiresAt * 1000).toISOString()})`);
-            console.log(`   最大调用次数: ${maxCalls} 次`);
-            console.log(`   最大消费额度: ${ethers.formatEther(maxSpending)} ETH`);
-            console.log(`   目标地址: 任意 (0x0)`);
+            console.log(`   有效期: 1小时`);
+            console.log(`   最大调用次数: ${maxCalls}`);
+            console.log(`   最大额度: ${ethers.formatEther(maxSpending)} ETH`);
             console.log('─'.repeat(50));
 
             const grantTx = await account.grantSessionKey(
-                sessionKey.address,
-                expiresAt,
-                maxCalls,
-                maxSpending,
-                ethers.ZeroAddress
+                sessionKey.address, expiresAt, maxCalls, maxSpending, ethers.ZeroAddress
             );
-            console.log(`\n⏳ 交易已提交: ${grantTx.hash}`);
-            console.log('   等待确认...');
+            console.log(`\n⏳ 授权交易: ${grantTx.hash}`);
             await grantTx.wait();
-            console.log('✅ 会话密钥授权成功！');
-            console.log(`🔗 查看: https://sepolia.etherscan.io/tx/${grantTx.hash}`);
+            console.log('✅ 授权成功！');
+            console.log(`🔗 https://sepolia.etherscan.io/tx/${grantTx.hash}`);
 
-            // 签名支付消息
-            console.log('\n✍️  用会话密钥签名支付消息...');
-            console.log('─'.repeat(50));
+            // 签名
+            console.log('\n✍️  签名支付消息...');
             const messageHash = ethers.keccak256(
                 ethers.solidityPacked(
                     ['address', 'address', 'uint256', 'bytes32', 'bytes32'],
-                    [
-                        CONFIG.accountAddress,
-                        purchaseData.payment.merchant,
-                        purchaseData.payment.amount,
-                        purchaseData.payment.paymentId,
-                        purchaseData.payment.cartHash
-                    ]
+                    [CONFIG.accountAddress, purchaseData.payment.merchant,
+                     purchaseData.payment.amount, purchaseData.payment.paymentId,
+                     purchaseData.payment.cartHash]
                 )
             );
-            
-            console.log(`   消息哈希: ${messageHash.substring(0, 30)}...`);
-            console.log(`   签名内容:`);
-            console.log(`     - 智能账户: ${CONFIG.accountAddress}`);
-            console.log(`     - 商户地址: ${purchaseData.payment.merchant}`);
-            console.log(`     - 支付金额: ${purchaseData.payment.amountEth}`);
-            console.log(`     - 支付ID: ${purchaseData.payment.paymentId.substring(0, 20)}...`);
-            console.log(`     - 购物车哈希: ${purchaseData.payment.cartHash.substring(0, 20)}...`);
-            console.log('─'.repeat(50));
-
             const signature = await sessionKeyManager.signMessage(messageHash);
-            console.log(`\n✅ 签名完成: ${signature.substring(0, 30)}...`);
+            console.log(`✅ 签名完成`);
 
             // 执行支付
             console.log('\n💸 执行链上支付...');
             console.log('─'.repeat(50));
-            console.log(`   从智能账户: ${CONFIG.accountAddress}`);
-            console.log(`   转账到商户: ${purchaseData.payment.merchant}`);
-            console.log(`   转账金额: ${purchaseData.payment.amountEth}`);
-            console.log(`   会话密钥签名: ${signature.substring(0, 20)}...`);
+            console.log(`   金额: ${purchaseData.payment.amountEth}`);
+            console.log(`   商户: ${purchaseData.payment.merchant}`);
             console.log('─'.repeat(50));
-            
+
             const payTx = await account.payWithSessionKey(
-                sessionKey.address,
-                purchaseData.payment.merchant,
-                purchaseData.payment.amount,
-                purchaseData.payment.paymentId,
-                purchaseData.payment.cartHash,
-                signature
+                sessionKey.address, purchaseData.payment.merchant,
+                purchaseData.payment.amount, purchaseData.payment.paymentId,
+                purchaseData.payment.cartHash, signature
             );
 
-            console.log(`\n⏳ 交易已提交: ${payTx.hash}`);
-            console.log('   等待区块确认...');
+            console.log(`\n⏳ 支付交易: ${payTx.hash}`);
+            console.log('   等待确认...');
             const receipt = await payTx.wait();
 
             if (receipt.status === 1) {
@@ -291,14 +338,10 @@ async function main() {
                 console.log('╔════════════════════════════════════════════════════════════╗');
                 console.log('║                     ✅ 支付成功！                          ║');
                 console.log('╚════════════════════════════════════════════════════════════╝');
-                console.log('─'.repeat(60));
-                console.log(`   区块号: ${receipt.blockNumber}`);
-                console.log(`   Gas使用: ${receipt.gasUsed.toString()}`);
-                console.log(`   交易哈希: ${payTx.hash}`);
-                console.log('─'.repeat(60));
-                console.log('💡 Gas由用户EOA支付，商品款从智能账户扣除');
+                console.log(`   区块: ${receipt.blockNumber}`);
+                console.log(`   Gas: ${receipt.gasUsed.toString()}`);
                 console.log('');
-                console.log('🔗 查看交易详情:');
+                console.log('🔗 查看交易:');
                 console.log(`   https://sepolia.etherscan.io/tx/${payTx.hash}`);
             } else {
                 console.log('\n❌ 支付失败');
@@ -313,7 +356,6 @@ async function main() {
     async function checkBalance() {
         const userBalance = await provider.getBalance(wallet.address);
         const accountBalance = await provider.getBalance(CONFIG.accountAddress);
-        const merchantBalance = await provider.getBalance(CONFIG.merchantAddress);
 
         console.log('\n');
         console.log('╔════════════════════════════════════════════════════════════╗');
@@ -321,37 +363,13 @@ async function main() {
         console.log('╠════════════════════════════════════════════════════════════╣');
         console.log(`║  用户钱包: ${ethers.formatEther(userBalance).padEnd(10)} ETH`.padEnd(61) + '║');
         console.log(`║  智能账户: ${ethers.formatEther(accountBalance).padEnd(10)} ETH`.padEnd(61) + '║');
-        console.log(`║  商户收款: ${ethers.formatEther(merchantBalance).padEnd(10)} ETH`.padEnd(61) + '║');
         console.log('╚════════════════════════════════════════════════════════════╝');
-    }
-
-    // 查看服务状态
-    async function checkStatus() {
-        try {
-            const response = await fetch(`${CONFIG.mainApiUrl}/api/status`);
-            const data = await response.json();
-            
-            console.log('\n');
-            console.log('╔════════════════════════════════════════════════════════════╗');
-            console.log('║                    📊 服务状态                              ║');
-            console.log('╠════════════════════════════════════════════════════════════╣');
-            console.log(`║  主路由服务: 端口 ${data.mainRouter.port} - ${data.mainRouter.status}`.padEnd(61) + '║');
-            console.log('╠────────────────────────────────────────────────────────────╣');
-            
-            for (const service of data.productServices) {
-                console.log(`║  ${service.name.padEnd(20)} - 端口 ${service.port}`.padEnd(61) + '║');
-            }
-            
-            console.log('╚════════════════════════════════════════════════════════════╝');
-        } catch (error) {
-            console.error('❌ 无法获取服务状态:', error.message);
-        }
     }
 
     // 主循环
     while (true) {
         await showMenu();
-        const choice = await question('请选择操作: ');
+        const choice = await question('请选择: ');
 
         switch (choice.trim()) {
             case '1':
@@ -363,14 +381,9 @@ async function main() {
             case '3':
                 await checkBalance();
                 break;
-            case '4':
-                await checkStatus();
-                break;
-            case 'h':
-                console.log('\n帮助信息...');
-                break;
             case 'q':
-                console.log('再见！');
+                console.log('\n正在关闭服务...');
+                servers.forEach(s => s.close());
                 rl.close();
                 process.exit(0);
             default:
@@ -378,5 +391,12 @@ async function main() {
         }
     }
 }
+
+// 优雅关闭
+process.on('SIGINT', () => {
+    console.log('\n正在关闭...');
+    servers.forEach(s => s.close());
+    process.exit(0);
+});
 
 main().catch(console.error);
