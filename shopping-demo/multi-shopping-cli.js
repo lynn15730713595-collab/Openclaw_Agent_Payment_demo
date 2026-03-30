@@ -357,11 +357,20 @@ async function main() {
                             const isActive = keyInfo.isActive;
                             const usedCalls = Number(keyInfo.usedCalls);
                             const maxCallsVal = Number(keyInfo.maxCalls);
-                            const remaining = maxCallsVal - usedCalls;
+                            const remainingCalls = maxCallsVal - usedCalls;
+                            const usedSpending = keyInfo.usedSpending;
+                            const maxSpending = keyInfo.maxSpending;
+                            const remainingSpending = maxSpending - usedSpending;
                             
                             console.log(`   ${i + 1}. 地址: ${key.address}`);
-                            console.log(`      状态: ${isActive ? '激活' : '未激活'} | 剩余次数: ${remaining}`);
+                            console.log(`      状态: ${isActive ? '激活' : '未激活'}`);
+                            console.log(`      剩余次数: ${remainingCalls} | 剩余额度: ${ethers.formatEther(remainingSpending)} ETH`);
                             console.log(`      创建时间: ${key.createdAt}`);
+                            
+                            // 警告：额度不足
+                            if (remainingSpending <= 0n) {
+                                console.log(`      ⚠️  消费额度已用完，无法使用`);
+                            }
                         } catch (e) {
                             console.log(`   ${i + 1}. 地址: ${key.address}`);
                             console.log(`      状态: 未授权或查询失败`);
@@ -389,6 +398,15 @@ async function main() {
                             
                             console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
                             console.log(`   最大调用次数: ${maxCalls}`);
+                            
+                            // 检查是否有足够的额度
+                            const remainingSpending = keyInfo.maxSpending - keyInfo.usedSpending;
+                            if (remainingSpending <= 0n) {
+                                console.log('\n⚠️  警告: 该密钥消费额度已用完，无法使用');
+                                console.log('   将创建新的会话密钥');
+                                isNewKey = true;
+                                sessionKey = null;
+                            }
                         } else {
                             console.log(`❌ 未找到地址 ${inputAddress} 对应的会话密钥`);
                             isNewKey = true;
@@ -401,12 +419,21 @@ async function main() {
                             const selectedKey = createdKeys[selectIndex];
                             sessionKey = sessionKeyManager.useExistingKey(selectedKey.address);
                             
-                            // 查询该密钥的最大调用次数
+                            // 查询该密钥的最大调用次数和额度
                             const keyInfo = await account.sessionKeys(selectedKey.address);
                             maxCalls = Number(keyInfo.maxCalls);
                             
                             console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
                             console.log(`   最大调用次数: ${maxCalls}`);
+                            
+                            // 检查是否有足够的额度
+                            const remainingSpending = keyInfo.maxSpending - keyInfo.usedSpending;
+                            if (remainingSpending <= 0n) {
+                                console.log('\n⚠️  警告: 该密钥消费额度已用完，无法使用');
+                                console.log('   将创建新的会话密钥');
+                                isNewKey = true;
+                                sessionKey = null;
+                            }
                         } else {
                             console.log('将创建新的会话密钥');
                             isNewKey = true;
