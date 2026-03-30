@@ -201,14 +201,27 @@ async function main() {
             console.log(formatCartCard(purchaseData.cart, port));
 
             // 生成会话密钥
+            console.log('\n🔑 生成会话密钥...');
+            console.log('─'.repeat(50));
             const sessionKey = sessionKeyManager.generateSessionKey();
-            console.log(`\n🔑 会话密钥: ${sessionKey.address}`);
+            console.log(`   地址: ${sessionKey.address}`);
+            console.log(`   私钥: ${sessionKey.privateKey.substring(0, 20)}...`);
+            console.log('   ⚠️  这是临时密钥，仅用于本次交易');
+            console.log('─'.repeat(50));
 
             // 授权会话密钥
-            console.log('\n📝 授权会话密钥...');
+            console.log('\n📝 授权会话密钥到智能账户...');
+            console.log('─'.repeat(50));
             const expiresAt = Math.floor(Date.now() / 1000) + 3600;
             const maxCalls = 5;
             const maxSpending = BigInt(purchaseData.payment.amount) * 12n / 10n;
+            
+            console.log(`   会话密钥地址: ${sessionKey.address}`);
+            console.log(`   有效期: 1小时 (至 ${new Date(expiresAt * 1000).toISOString()})`);
+            console.log(`   最大调用次数: ${maxCalls} 次`);
+            console.log(`   最大消费额度: ${ethers.formatEther(maxSpending)} ETH`);
+            console.log(`   目标地址: 任意 (0x0)`);
+            console.log('─'.repeat(50));
 
             const grantTx = await account.grantSessionKey(
                 sessionKey.address,
@@ -217,11 +230,15 @@ async function main() {
                 maxSpending,
                 ethers.ZeroAddress
             );
+            console.log(`\n⏳ 交易已提交: ${grantTx.hash}`);
+            console.log('   等待确认...');
             await grantTx.wait();
-            console.log('✅ 会话密钥已授权');
+            console.log('✅ 会话密钥授权成功！');
+            console.log(`🔗 查看: https://sepolia.etherscan.io/tx/${grantTx.hash}`);
 
             // 签名支付消息
-            console.log('\n✍️  签名支付消息...');
+            console.log('\n✍️  用会话密钥签名支付消息...');
+            console.log('─'.repeat(50));
             const messageHash = ethers.keccak256(
                 ethers.solidityPacked(
                     ['address', 'address', 'uint256', 'bytes32', 'bytes32'],
@@ -234,11 +251,28 @@ async function main() {
                     ]
                 )
             );
+            
+            console.log(`   消息哈希: ${messageHash.substring(0, 30)}...`);
+            console.log(`   签名内容:`);
+            console.log(`     - 智能账户: ${CONFIG.accountAddress}`);
+            console.log(`     - 商户地址: ${purchaseData.payment.merchant}`);
+            console.log(`     - 支付金额: ${purchaseData.payment.amountEth}`);
+            console.log(`     - 支付ID: ${purchaseData.payment.paymentId.substring(0, 20)}...`);
+            console.log(`     - 购物车哈希: ${purchaseData.payment.cartHash.substring(0, 20)}...`);
+            console.log('─'.repeat(50));
 
             const signature = await sessionKeyManager.signMessage(messageHash);
+            console.log(`\n✅ 签名完成: ${signature.substring(0, 30)}...`);
 
             // 执行支付
-            console.log('\n💸 执行支付...');
+            console.log('\n💸 执行链上支付...');
+            console.log('─'.repeat(50));
+            console.log(`   从智能账户: ${CONFIG.accountAddress}`);
+            console.log(`   转账到商户: ${purchaseData.payment.merchant}`);
+            console.log(`   转账金额: ${purchaseData.payment.amountEth}`);
+            console.log(`   会话密钥签名: ${signature.substring(0, 20)}...`);
+            console.log('─'.repeat(50));
+            
             const payTx = await account.payWithSessionKey(
                 sessionKey.address,
                 purchaseData.payment.merchant,
@@ -248,13 +282,21 @@ async function main() {
                 signature
             );
 
-            console.log(`交易哈希: ${payTx.hash}`);
+            console.log(`\n⏳ 交易已提交: ${payTx.hash}`);
+            console.log('   等待区块确认...');
             const receipt = await payTx.wait();
 
             if (receipt.status === 1) {
-                console.log('\n✅ 支付成功！');
-                console.log(`区块: ${receipt.blockNumber}`);
-                console.log(`Gas: ${receipt.gasUsed.toString()}`);
+                console.log('\n');
+                console.log('╔════════════════════════════════════════════════════════════╗');
+                console.log('║                     ✅ 支付成功！                          ║');
+                console.log('╚════════════════════════════════════════════════════════════╝');
+                console.log('─'.repeat(60));
+                console.log(`   区块号: ${receipt.blockNumber}`);
+                console.log(`   Gas使用: ${receipt.gasUsed.toString()}`);
+                console.log(`   交易哈希: ${payTx.hash}`);
+                console.log('─'.repeat(60));
+                console.log('💡 Gas由用户EOA支付，商品款从智能账户扣除');
                 console.log('');
                 console.log('🔗 查看交易详情:');
                 console.log(`   https://sepolia.etherscan.io/tx/${payTx.hash}`);
