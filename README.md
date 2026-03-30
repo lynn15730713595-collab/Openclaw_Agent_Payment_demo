@@ -16,25 +16,28 @@
 
 ```
 Openclaw_Agent_Payment_demo/
+├── .gitignore                              # Git忽略配置
+├── README.md                               # 本文件
+│
 ├── contracts/                              # 智能合约
+│   ├── .env.example                        # 部署环境变量模板
 │   ├── foundry.toml                        # Foundry配置
+│   ├── foundry.lock                        # Foundry依赖锁定
 │   ├── src/
 │   │   └── ModularAccount.sol              # 模块化智能账户合约
 │   └── script/
 │       └── DeployModular.s.sol             # 部署脚本
 │
 ├── shopping-demo/                          # 交互演示
-│   ├── .env.example                        # 配置模板
+│   ├── .env.example                        # Demo环境变量模板
 │   ├── openclaw-bridge.js                  # ⭐ OpenClaw交互脚本
 │   ├── multi-shopping-cli.js               # 终端交互式CLI
 │   ├── package.json                        # Node.js依赖
 │   └── session-keys.json                   # 会话密钥存储
 │
-├── skills/                                 # OpenClaw Skill
-│   └── openclaw-agent-payment-demo/
-│       └── SKILL.md                        # ⭐ 交互指南
-│
-└── README.md                               # 本文件
+└── skills/                                 # OpenClaw Skill
+    └── openclaw-agent-payment-demo/
+        └── SKILL.md                        # ⭐ 交互指南
 ```
 
 ## 🚀 快速开始
@@ -48,44 +51,19 @@ cd Openclaw_Agent_Payment_demo
 
 ### 2. 安装依赖
 
-#### 安装Node.js依赖（必需）
-
 ```bash
 cd shopping-demo
 npm install
+cd ..
 ```
-
-#### 安装Foundry（可选，仅用于编译/部署合约）
-
-Foundry 是一个 Solidity 智能合约开发框架，用于编译和部署合约。
-
-**什么时候需要安装 Foundry？**
-
-| 场景 | 是否需要 Foundry |
-|------|-----------------|
-| ✅ 只运行购物Demo（使用已部署的合约） | **不需要** |
-| ✅ 修改合约代码后重新编译 | **需要** |
-| ✅ 自己部署新合约到测试网 | **需要** |
-
-当前 Demo 已部署好合约到 Sepolia 测试网，你可以直接运行 `node multi-shopping-cli.js`，无需安装 Foundry。
-
-如果你需要自己编译或部署合约：
-
-```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
-
-或参考官方文档: https://book.getfoundry.sh/getting-started/installation
 
 ### 3. 配置环境变量
 
 ```bash
 cp shopping-demo/.env.example shopping-demo/.env
-nano shopping-demo/.env  # 或使用你喜欢的编辑器
 ```
 
-#### 配置内容说明:
+编辑 `shopping-demo/.env`：
 
 ```bash
 # 网络配置
@@ -95,11 +73,11 @@ CHAIN_ID=11155111
 # 用户私钥 (⚠️ 请替换为你自己的私钥，不要使用真实资产!)
 PRIVATE_KEY=0x你的私钥
 
-# 模块化账户地址 (部署后填入)
-ACCOUNT_ADDRESS=0x部署的合约地址
+# 模块化账户地址 (使用已部署的合约或自己部署后填入)
+ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
 
-# 商户收款地址
-MERCHANT_ADDRESS=0x商户收款地址
+# 商户收款地址 (已预设，可修改)
+MERCHANT_ADDRESS=0x1ef391d266f3BCdF0d9b30660FDc4032B868cDeb
 ```
 
 ⚠️ **安全提醒:**
@@ -107,131 +85,57 @@ MERCHANT_ADDRESS=0x商户收款地址
 - 建议使用测试网专用钱包
 - `.env` 文件已添加到 `.gitignore`，不会被上传到GitHub
 
-### 4. 部署合约（可选）
+### 4. 获取测试ETH
 
-如果你想自己部署合约，请按以下步骤操作：
-
-#### 步骤1：配置环境变量
-
-部署合约需要 `PRIVATE_KEY` 环境变量。
-
-**方式一：创建 contracts 专用 .env（推荐）**
+**如果使用已部署的合约，需要向合约地址充值 ETH：**
 
 ```bash
-cp contracts/.env.example contracts/.env
-nano contracts/.env  # 填入你的私钥
+# 合约地址
+0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
 ```
-
-contracts 目录的 `.env` 只需要 `PRIVATE_KEY`：
-
-```bash
-PRIVATE_KEY=0x你的私钥
-```
-
-**方式二：使用 shopping-demo 的 .env**
-
-```bash
-# shopping-demo/.env 包含更多字段，但部署脚本只读取 PRIVATE_KEY
-source shopping-demo/.env
-```
-
-#### 步骤2：进入合约目录
-
-```bash
-cd contracts
-```
-
-#### 步骤3：编译合约
-
-```bash
-forge build
-```
-
-成功后你会看到：
-
-```
-Compiling 1 files with solc 0.8.20
-Compilation succeeded
-```
-
-#### 步骤4：部署合约
-
-```bash
-# 如果已在 contracts 目录创建 .env 文件
-forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast
-
-# 或者通过命令行传递参数
-forge script script/DeployModular.s.sol --rpc-url $RPC_URL --broadcast --private-key $PRIVATE_KEY
-```
-
-#### 步骤5：记录合约地址
-
-部署成功后，终端会输出类似以下内容：
-
-```
-## Setting up 1 EVMs.
-==========================
-Chain 11155111
-
-Estimated gas price: 0.0123 gwei
-
-##### sepolia
-✅  [Success]Hash: 0xabc123...
-Contract Address: 0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
-Block: 5678901
-
-✅  Funded account with 0.05 ETH
-```
-
-**部署脚本会自动充值 0.05 ETH 到合约账户**，无需手动充值。
-
-**复制 `Contract Address` 的值**（如 `0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5`）
-
-#### 步骤6：更新配置文件
-
-将合约地址更新到 `shopping-demo/.env`：
-
-```bash
-ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
-```
-
-#### 步骤7：验证部署
-
-```bash
-cd shopping-demo
-node openclaw-bridge.js balance
-```
-
-你应该看到智能账户有 0.05 ETH 余额。
-
----
 
 **获取Sepolia测试ETH:**
 - https://sepoliafaucet.com/
 - https://www.alchemy.com/faucets/ethereum-sepolia
 
----
-
-**使用已部署的合约（无需自己部署）:**
-
-如果你想跳过部署步骤，可以直接使用已部署好的合约：
-
-```bash
-ACCOUNT_ADDRESS=0xE3D2f53C5Bee435715A38493cc792676Ed09B4f5
-```
-
-只需充值 ETH 到该地址即可开始使用。
+**充值方式：** 使用 MetaMask 或其他钱包，将测试 ETH 发送到合约地址。
 
 ### 5. 运行Demo
-
-#### 方式一：终端交互式CLI
 
 ```bash
 cd shopping-demo
 node multi-shopping-cli.js
 ```
 
-#### 方式二：OpenClaw对话框交互
+脚本会自动启动API服务（端口 3000-3008），然后显示交互菜单。
+
+---
+
+## 📋 使用方式
+
+### 方式一：终端交互式CLI
+
+```bash
+cd shopping-demo
+node multi-shopping-cli.js
+```
+
+菜单选项：
+
+```
+╔════════════════════════════════════════════════════════════╗
+║            🏪 AI购物会话密钥Demo                           ║
+╠════════════════════════════════════════════════════════════╣
+║  1. 📦 查看商品目录                                         ║
+║  2. 🛒 购买商品                                             ║
+║  3. 💰 查询余额                                             ║
+║  4. 🔑 查询会话密钥                                         ║
+║  5. 🗑️  删除会话密钥                                        ║
+║  q. 🚪 退出                                                 ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+### 方式二：OpenClaw对话框交互
 
 ```bash
 cd shopping-demo
@@ -239,97 +143,97 @@ node openclaw-bridge.js <command>
 ```
 
 支持的命令：
-```bash
-node openclaw-bridge.js products              # 查看商品列表
-node openclaw-bridge.js balance               # 查询余额
-node openclaw-bridge.js keys                  # 列出会话密钥
-node openclaw-bridge.js purchase <productId>  # 发起购买
-node openclaw-bridge.js pay <productId> <keyIndex>  # 执行支付
-node openclaw-bridge.js key-create [calls] [eth]    # 创建会话密钥
-node openclaw-bridge.js key-delete <index>          # 删除会话密钥
-```
 
-## 🎮 OpenClaw集成
-
-本项目已集成到OpenClaw，可以在对话框中直接进行购物交互。
-
-### 交互流程
-
-```
-用户: 商品列表
-OpenClaw: 返回8个商品目录
-
-用户: 我要购买AI API Package
-OpenClaw: 显示购物车，确认购买? (y/n)
-
-用户: y
-OpenClaw: 选择会话密钥方式 (1.已有 2.新建)
-
-用户: 1
-OpenClaw: 显示会话密钥列表，标注额度是否充足
-
-用户: 2
-OpenClaw: 执行支付，返回交易链接
-
-🎉 购买完成！
-```
-
-### 商品列表
-
-| ID | 商品名称 | 价格 (ETH) |
-|----|---------|-----------|
-| 1 | AI API Package | 0.0005 |
-| 2 | Data Cleaning Service | 0.001 |
-| 3 | Model Training Time | 0.0015 |
-| 4 | Business Analysis Report | 0.002 |
-| 5 | System Monitoring Service | 0.0025 |
-| 6 | Expert Technical Consulting | 0.003 |
-| 7 | API Documentation | 0.0035 |
-| 8 | Data Backup Service | 0.004 |
-
-## 🔧 核心合约
-
-### ModularAccount.sol
-
-模块化智能账户合约，内置会话密钥管理功能：
-
-```solidity
-// 会话密钥结构
-struct SessionKey {
-    bool isActive;        // 是否激活
-    uint64 expiresAt;     // 过期时间
-    uint32 maxCalls;      // 最大调用次数
-    uint32 usedCalls;     // 已调用次数
-    uint256 maxSpending;  // 最大消费额度
-    uint256 usedSpending; // 已消费额度
-    address allowedTarget;// 允许的目标地址
-}
-```
-
-#### 允许的目标地址 (allowedTarget)
-
-`allowedTarget` 字段用于限制会话密钥只能向特定地址支付：
-
-| 值 | 含义 | 使用场景 |
-|-----|------|---------|
-| `address(0)` (零地址) | 可以向**任意地址**支付 | 灵活支付，不限制目标 |
-| 特定商户地址 | **只能向该地址**支付 | 更安全，限制支付目标 |
-
-**安全意义**：
-- 防止会话密钥被盗后转账到攻击者地址
-- 限制 AI 代理只能向指定商户付款
-- 即使会话密钥私钥泄露，资金也只能流向指定地址
-
-**本 Demo 设置为零地址**，表示可以向任意商户支付。
-
-**核心功能：**
-
-| 函数 | 说明 |
+| 命令 | 说明 |
 |------|------|
-| `grantSessionKey()` | 授权会话密钥 |
-| `revokeSessionKey()` | 撤销会话密钥 |
-| `payWithSessionKey()` | 用会话密钥支付 |
-| `withdraw()` | 提取ETH |
+| `products` | 查看商品列表 |
+| `balance` | 查询余额 |
+| `keys` | 列出会话密钥 |
+| `purchase <productId>` | 发起购买 |
+| `pay <productId> <keyIndex>` | 执行支付 |
+| `key-create [calls] [eth]` | 创建会话密钥 |
+| `key-delete <index>` | 删除会话密钥 |
+
+---
+
+## 🛒 商品列表
+
+| ID | 商品名称 | 描述 | 价格 (ETH) |
+|----|---------|------|-----------|
+| 1 | AI API Package | 1000次 GPT-4 API calls | 0.0005 |
+| 2 | Data Cleaning Service | 数据清洗服务 | 0.001 |
+| 3 | Model Training Time | 模型训练时间 | 0.0015 |
+| 4 | Business Analysis Report | 商业分析报告 | 0.002 |
+| 5 | System Monitoring Service | 系统监控服务 | 0.0025 |
+| 6 | Expert Technical Consulting | 专家技术咨询 | 0.003 |
+| 7 | API Documentation | API文档服务 | 0.0035 |
+| 8 | Data Backup Service | 数据备份服务 | 0.004 |
+
+---
+
+## 🔧 部署自己的合约（可选）
+
+如果你想自己部署合约，需要安装 Foundry。
+
+### 安装 Foundry
+
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+或参考官方文档: https://book.getfoundry.sh/getting-started/installation
+
+### 部署步骤
+
+**步骤1：配置环境变量**
+
+```bash
+cp contracts/.env.example contracts/.env
+```
+
+编辑 `contracts/.env`：
+
+```bash
+PRIVATE_KEY=0x你的私钥
+```
+
+**步骤2：编译合约**
+
+```bash
+cd contracts
+forge build
+```
+
+**步骤3：部署合约**
+
+```bash
+forge script script/DeployModular.s.sol \
+  --rpc-url https://ethereum-sepolia.publicnode.com \
+  --broadcast
+```
+
+**步骤4：记录合约地址**
+
+部署成功后会输出：
+
+```
+✅  [Success]Hash: 0xabc123...
+Contract Address: 0x你的合约地址
+✅  Funded account with 0.05 ETH
+```
+
+**部署脚本会自动充值 0.05 ETH 到合约账户。**
+
+**步骤5：更新配置**
+
+将合约地址更新到 `shopping-demo/.env`：
+
+```bash
+ACCOUNT_ADDRESS=0x你的合约地址
+```
+
+---
 
 ## 📊 支付流程
 
@@ -363,7 +267,49 @@ struct SessionKey {
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🔐 安全特性
+---
+
+## 🔐 核心合约
+
+### ModularAccount.sol
+
+模块化智能账户合约，内置会话密钥管理功能：
+
+```solidity
+struct SessionKey {
+    bool isActive;        // 是否激活
+    uint64 expiresAt;     // 过期时间
+    uint32 maxCalls;      // 最大调用次数
+    uint32 usedCalls;     // 已调用次数
+    uint256 maxSpending;  // 最大消费额度
+    uint256 usedSpending; // 已消费额度
+    address allowedTarget;// 允许的目标地址
+}
+```
+
+### 允许的目标地址 (allowedTarget)
+
+| 值 | 含义 | 使用场景 |
+|-----|------|---------|
+| `address(0)` (零地址) | 可以向**任意地址**支付 | 灵活支付 |
+| 特定商户地址 | **只能向该地址**支付 | 更安全 |
+
+**安全意义**：即使会话密钥私钥泄露，资金也只能流向指定地址。
+
+**本 Demo 设置为零地址**，可以向任意商户支付。
+
+### 核心函数
+
+| 函数 | 说明 |
+|------|------|
+| `grantSessionKey()` | 授权会话密钥 |
+| `revokeSessionKey()` | 撤销会话密钥 |
+| `payWithSessionKey()` | 用会话密钥支付 |
+| `withdraw()` | 提取ETH |
+
+---
+
+## 🔒 安全特性
 
 | 特性 | 说明 |
 |------|------|
@@ -375,22 +321,58 @@ struct SessionKey {
 | 防重放 | 每笔支付只能执行一次 |
 | 可撤销 | 用户可随时撤销会话密钥 |
 
+---
+
+## 🎮 OpenClaw集成
+
+本项目已集成到OpenClaw，可以在对话框中直接进行购物交互。
+
+### 交互流程示例
+
+```
+用户: 商品列表
+OpenClaw: 返回8个商品目录
+
+用户: 我要购买AI API Package
+OpenClaw: 显示购物车，确认购买? (y/n)
+
+用户: y
+OpenClaw: 选择会话密钥方式 (1.已有 2.新建)
+
+用户: 2
+OpenClaw: 创建新会话密钥，执行支付...
+
+🎉 购买完成！交易: 0x...
+```
+
+---
+
 ## 📁 核心文件说明
 
 | 文件 | 说明 |
 |------|------|
-| `shopping-demo/openclaw-bridge.js` | OpenClaw对话框调用的主脚本，支持命令行参数 |
-| `shopping-demo/multi-shopping-cli.js` | 终端交互式CLI，带菜单界面 |
-| `skills/openclaw-agent-payment-demo/SKILL.md` | OpenClaw Skill交互指南 |
 | `contracts/src/ModularAccount.sol` | 模块化账户智能合约 |
+| `contracts/script/DeployModular.s.sol` | 合约部署脚本 |
+| `shopping-demo/openclaw-bridge.js` | OpenClaw对话框调用脚本 |
+| `shopping-demo/multi-shopping-cli.js` | 终端交互式CLI |
+| `skills/openclaw-agent-payment-demo/SKILL.md` | OpenClaw Skill交互指南 |
 
-## 🛠️ 常见问题
+---
+
+## ❓ 常见问题
 
 ### Q: 如何获取测试ETH?
 
 访问Sepolia测试网水龙头:
 - https://sepoliafaucet.com/
 - https://www.alchemy.com/faucets/ethereum-sepolia
+
+### Q: 支付交易失败?
+
+检查:
+1. 智能账户有足够余额
+2. 会话密钥已授权
+3. 会话密钥未过期、未超次数/额度
 
 ### Q: 合约部署失败?
 
@@ -399,13 +381,7 @@ struct SessionKey {
 2. RPC_URL正确且可访问
 3. 私钥格式正确 (以 `0x` 开头)
 
-### Q: 支付交易失败?
-
-检查:
-1. 智能账户有足够余额
-2. 会话密钥已授权
-3. 会话密钥未过期、未超次数/额度
-4. 签名验证通过
+---
 
 ## 📝 License
 
