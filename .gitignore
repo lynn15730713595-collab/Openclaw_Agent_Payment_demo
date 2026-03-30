@@ -8,6 +8,7 @@ contracts/broadcast/
 
 # Environment files with secrets
 shopping-demo/.env
+shopping-demo/session-keys.json
 
 # Keep example
 !.env.example

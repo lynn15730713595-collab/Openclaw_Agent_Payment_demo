@@ -6,6 +6,8 @@
 
 const readline = require('readline');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { ethers } = require('ethers');
 const express = require('express');
 require('dotenv').config({ path: '.env' });
@@ -45,7 +47,30 @@ const MODULAR_ACCOUNT_ABI = [
 class SessionKeyManager {
     constructor() {
         this.sessionKeyPair = null;
-        this.createdKeys = []; // 存储已创建的会话密钥列表
+        this.keyStorePath = path.join(__dirname, 'session-keys.json');
+        this.createdKeys = this.loadKeys();
+    }
+    
+    // 从本地文件加载已创建的会话密钥
+    loadKeys() {
+        try {
+            if (fs.existsSync(this.keyStorePath)) {
+                const data = fs.readFileSync(this.keyStorePath, 'utf8');
+                return JSON.parse(data);
+            }
+        } catch (error) {
+            console.log('⚠️  加载会话密钥文件失败，使用空列表');
+        }
+        return [];
+    }
+    
+    // 保存会话密钥到本地文件
+    saveKeys() {
+        try {
+            fs.writeFileSync(this.keyStorePath, JSON.stringify(this.createdKeys, null, 2));
+        } catch (error) {
+            console.log('⚠️  保存会话密钥失败:', error.message);
+        }
     }
     
     generateSessionKey() {
@@ -56,17 +81,26 @@ class SessionKeyManager {
             wallet: wallet,
             createdAt: new Date().toISOString()
         };
-        // 添加到已创建列表
-        this.createdKeys.push(this.sessionKeyPair);
+        // 添加到已创建列表并保存到文件
+        this.createdKeys.push({
+            address: wallet.address,
+            privateKey: wallet.privateKey,
+            createdAt: new Date().toISOString()
+        });
+        this.saveKeys();
         return this.sessionKeyPair;
     }
     
-    // 使用已有的会话密钥
-    useExistingKey(address, privateKey) {
-        const wallet = new ethers.Wallet(privateKey);
+    // 使用已有的会话密钥（根据地址自动查找私钥）
+    useExistingKey(address) {
+        const keyInfo = this.createdKeys.find(k => k.address.toLowerCase() === address.toLowerCase());
+        if (!keyInfo) {
+            throw new Error('未找到该地址对应的会话密钥');
+        }
+        const wallet = new ethers.Wallet(keyInfo.privateKey);
         this.sessionKeyPair = {
-            address: address,
-            privateKey: privateKey,
+            address: keyInfo.address,
+            privateKey: keyInfo.privateKey,
             wallet: wallet
         };
         return this.sessionKeyPair;
@@ -340,7 +374,7 @@ async function main() {
                     
                     if (selectIndex >= 0 && selectIndex < createdKeys.length) {
                         const selectedKey = createdKeys[selectIndex];
-                        sessionKey = sessionKeyManager.useExistingKey(selectedKey.address, selectedKey.privateKey);
+                        sessionKey = sessionKeyManager.useExistingKey(selectedKey.address);
                         
                         // 查询该密钥的最大调用次数
                         const keyInfo = await account.getSessionKey(selectedKey.address);
