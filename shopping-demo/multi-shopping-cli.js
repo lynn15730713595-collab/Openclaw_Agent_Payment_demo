@@ -353,7 +353,7 @@ async function main() {
                         const key = createdKeys[i];
                         // 查询该密钥的状态
                         try {
-                            const keyInfo = await account.getSessionKey(key.address);
+                            const keyInfo = await account.sessionKeys(key.address);
                             const isActive = keyInfo.isActive;
                             const usedCalls = Number(keyInfo.usedCalls);
                             const maxCallsVal = Number(keyInfo.maxCalls);
@@ -384,7 +384,7 @@ async function main() {
                             sessionKey = sessionKeyManager.useExistingKey(inputAddress);
                             
                             // 查询该密钥的最大调用次数
-                            const keyInfo = await account.getSessionKey(inputAddress);
+                            const keyInfo = await account.sessionKeys(inputAddress);
                             maxCalls = Number(keyInfo.maxCalls);
                             
                             console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
@@ -402,7 +402,7 @@ async function main() {
                             sessionKey = sessionKeyManager.useExistingKey(selectedKey.address);
                             
                             // 查询该密钥的最大调用次数
-                            const keyInfo = await account.getSessionKey(selectedKey.address);
+                            const keyInfo = await account.sessionKeys(selectedKey.address);
                             maxCalls = Number(keyInfo.maxCalls);
                             
                             console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
@@ -542,7 +542,7 @@ async function main() {
         }
 
         try {
-            const keyInfo = await account.getSessionKey(sessionKeyAddress);
+            const keyInfo = await account.sessionKeys(sessionKeyAddress);
             
             const isActive = keyInfo.isActive;
             const expiresAt = Number(keyInfo.expiresAt);
