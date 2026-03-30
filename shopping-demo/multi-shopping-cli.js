@@ -364,27 +364,53 @@ async function main() {
                             console.log(`      创建时间: ${key.createdAt}`);
                         } catch (e) {
                             console.log(`   ${i + 1}. 地址: ${key.address}`);
-                            console.log(`      状态: 无法查询`);
+                            console.log(`      状态: 未授权或查询失败`);
+                            console.log(`      创建时间: ${key.createdAt}`);
+                            console.log(`      提示: 该密钥可能未在合约中授权，请创建新密钥`);
                         }
                         console.log('─'.repeat(60));
                     }
                     
-                    const selectInput = await question('\n请输入要使用的会话密钥序号 (或输入 0 创建新的): ');
-                    const selectIndex = parseInt(selectInput) - 1;
+                    const selectInput = await question('\n请输入序号或直接输入地址 (或输入 0 创建新的): ');
+                    const selectInputTrimmed = selectInput.trim();
                     
-                    if (selectIndex >= 0 && selectIndex < createdKeys.length) {
-                        const selectedKey = createdKeys[selectIndex];
-                        sessionKey = sessionKeyManager.useExistingKey(selectedKey.address);
+                    // 判断输入是序号还是地址
+                    if (selectInputTrimmed.startsWith('0x') || selectInputTrimmed.startsWith('0X')) {
+                        // 用户输入的是地址
+                        const inputAddress = selectInputTrimmed;
+                        const keyExists = createdKeys.find(k => k.address.toLowerCase() === inputAddress.toLowerCase());
                         
-                        // 查询该密钥的最大调用次数
-                        const keyInfo = await account.getSessionKey(selectedKey.address);
-                        maxCalls = Number(keyInfo.maxCalls);
-                        
-                        console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
-                        console.log(`   最大调用次数: ${maxCalls}`);
+                        if (keyExists) {
+                            sessionKey = sessionKeyManager.useExistingKey(inputAddress);
+                            
+                            // 查询该密钥的最大调用次数
+                            const keyInfo = await account.getSessionKey(inputAddress);
+                            maxCalls = Number(keyInfo.maxCalls);
+                            
+                            console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
+                            console.log(`   最大调用次数: ${maxCalls}`);
+                        } else {
+                            console.log(`❌ 未找到地址 ${inputAddress} 对应的会话密钥`);
+                            isNewKey = true;
+                        }
                     } else {
-                        console.log('将创建新的会话密钥');
-                        isNewKey = true;
+                        // 用户输入的是序号
+                        const selectIndex = parseInt(selectInputTrimmed) - 1;
+                        
+                        if (selectIndex >= 0 && selectIndex < createdKeys.length) {
+                            const selectedKey = createdKeys[selectIndex];
+                            sessionKey = sessionKeyManager.useExistingKey(selectedKey.address);
+                            
+                            // 查询该密钥的最大调用次数
+                            const keyInfo = await account.getSessionKey(selectedKey.address);
+                            maxCalls = Number(keyInfo.maxCalls);
+                            
+                            console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
+                            console.log(`   最大调用次数: ${maxCalls}`);
+                        } else {
+                            console.log('将创建新的会话密钥');
+                            isNewKey = true;
+                        }
                     }
                 }
             } else {
