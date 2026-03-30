@@ -255,6 +255,9 @@ async function main() {
                 console.log('\n✅ 支付成功！');
                 console.log(`区块: ${receipt.blockNumber}`);
                 console.log(`Gas: ${receipt.gasUsed.toString()}`);
+                console.log('');
+                console.log('🔗 查看交易详情:');
+                console.log(`   https://sepolia.etherscan.io/tx/${payTx.hash}`);
             } else {
                 console.log('\n❌ 支付失败');
             }

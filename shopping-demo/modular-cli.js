@@ -360,6 +360,9 @@ class ModularAccountDemo {
             console.log(`   区块号: ${receipt.blockNumber}`);
             console.log(`   Gas使用: ${receipt.gasUsed.toString()}`);
             console.log(`   💡 Gas由用户EOA支付，商品款从智能账户扣除`);
+            console.log('');
+            console.log('🔗 查看交易详情:');
+            console.log(`   https://sepolia.etherscan.io/tx/${payTx.hash}`);
             
             console.log('\n🎉 购买完成! (模块化账户版本)');
             
