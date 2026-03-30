@@ -345,6 +345,10 @@ async function main() {
                     console.log('❌ 没有已创建的会话密钥，将创建新的');
                     isNewKey = true;
                 } else {
+                    // 显示当前支付金额
+                    const paymentAmount = BigInt(purchaseData.payment.amount);
+                    console.log(`\n💰 当前支付金额: ${ethers.formatEther(paymentAmount)} ETH`);
+                    
                     // 显示已创建的会话密钥列表
                     console.log('\n📋 已创建的会话密钥:');
                     console.log('─'.repeat(60));
@@ -361,6 +365,7 @@ async function main() {
                             const usedSpending = keyInfo.usedSpending;
                             const maxSpending = keyInfo.maxSpending;
                             const remainingSpending = maxSpending - usedSpending;
+                            const canAfford = remainingSpending >= paymentAmount;
                             
                             console.log(`   ${i + 1}. 地址: ${key.address}`);
                             console.log(`      状态: ${isActive ? '激活' : '未激活'}`);
@@ -368,8 +373,10 @@ async function main() {
                             console.log(`      创建时间: ${key.createdAt}`);
                             
                             // 警告：额度不足
-                            if (remainingSpending <= 0n) {
-                                console.log(`      ⚠️  消费额度已用完，无法使用`);
+                            if (!canAfford) {
+                                console.log(`      ❌ 额度不足，无法支付当前金额`);
+                            } else {
+                                console.log(`      ✅ 额度充足，可以使用`);
                             }
                         } catch (e) {
                             console.log(`   ${i + 1}. 地址: ${key.address}`);
@@ -399,10 +406,15 @@ async function main() {
                             console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
                             console.log(`   最大调用次数: ${maxCalls}`);
                             
-                            // 检查是否有足够的额度
+                            // 检查是否有足够的额度支付当前金额
                             const remainingSpending = keyInfo.maxSpending - keyInfo.usedSpending;
-                            if (remainingSpending <= 0n) {
-                                console.log('\n⚠️  警告: 该密钥消费额度已用完，无法使用');
+                            const paymentAmount = BigInt(purchaseData.payment.amount);
+                            
+                            console.log(`   剩余额度: ${ethers.formatEther(remainingSpending)} ETH`);
+                            console.log(`   当前支付: ${ethers.formatEther(paymentAmount)} ETH`);
+                            
+                            if (remainingSpending < paymentAmount) {
+                                console.log('\n⚠️  警告: 该密钥剩余额度不足以支付当前金额');
                                 console.log('   将创建新的会话密钥');
                                 isNewKey = true;
                                 sessionKey = null;
@@ -426,10 +438,15 @@ async function main() {
                             console.log(`\n✅ 已选择会话密钥: ${sessionKey.address}`);
                             console.log(`   最大调用次数: ${maxCalls}`);
                             
-                            // 检查是否有足够的额度
+                            // 检查是否有足够的额度支付当前金额
                             const remainingSpending = keyInfo.maxSpending - keyInfo.usedSpending;
-                            if (remainingSpending <= 0n) {
-                                console.log('\n⚠️  警告: 该密钥消费额度已用完，无法使用');
+                            const paymentAmount = BigInt(purchaseData.payment.amount);
+                            
+                            console.log(`   剩余额度: ${ethers.formatEther(remainingSpending)} ETH`);
+                            console.log(`   当前支付: ${ethers.formatEther(paymentAmount)} ETH`);
+                            
+                            if (remainingSpending < paymentAmount) {
+                                console.log('\n⚠️  警告: 该密钥剩余额度不足以支付当前金额');
                                 console.log('   将创建新的会话密钥');
                                 isNewKey = true;
                                 sessionKey = null;
