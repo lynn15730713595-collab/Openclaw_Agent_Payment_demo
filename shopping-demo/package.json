@@ -1,0 +1,17 @@
+{
+  "name": "shopping-session-demo",
+  "version": "1.0.0",
+  "description": "AI购物会话密钥Demo - 基于aa-session-keys",
+  "main": "shopping-cli.js",
+  "scripts": {
+    "start": "node shopping-cli.js",
+    "api": "node product-api-server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.0",
+    "express": "^4.19.2"
+  },
+  "keywords": ["erc-4337", "session-keys", "ai-shopping"],
+  "license": "MIT"
+}

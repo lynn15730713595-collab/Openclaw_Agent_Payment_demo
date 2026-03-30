@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# Environment files with secrets
+shopping-demo/.env
+
+# Keep example
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
